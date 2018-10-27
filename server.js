@@ -75,7 +75,7 @@ app.post("/cmd/startgame", function (req,res) {
 
 });
 
-//Function gets called when we get a getrules comamnd from slack
+//Function gets called when we get a getrules command from slack
 app.post("/cmd/getrules", function (req,res) {
 	console.log("getrules command");
 	res.send("setrules");

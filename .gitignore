@@ -1,2 +1,5 @@
 node_modules/
 .idea/
+copy-code.bat
+copy-code.sh
+secrets.json

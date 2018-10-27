@@ -4,10 +4,13 @@ const app = express();
 
 const port = 8080;
 
+app.use(express.json());
+
 //Function gets called when we get a start game command from slack
 app.post("/cmd/startgame", function (req,res) {
 	console.log("startgame command");
-	res.send("startgame")
+	res.send("startgame");
+    console.log(req.body);
 });
 
 //Function gets called when we get a getrules comamnd from slack

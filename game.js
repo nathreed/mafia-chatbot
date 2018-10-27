@@ -17,7 +17,6 @@ gameState object is laid out like this:
 - Other info about the game state as needed
  */
 let gameState = {players: {}, running: false, savedThisTurn: "", mafiaAttemptThisTurn: "", accusedThisTurn: [], playerVotesThisTurn: {}};
-
 // Give array of userids in array of strings that aren't prettyprint-able
 function assignRoles(userArray){
     // Only run if enough players
@@ -93,10 +92,10 @@ function debugAssignRoles(userArray) {
 //Accusation counts as a second if the user has already been accused
 function registerAccusation(userID, accuserID) {
     console.log("REGISTER ACCUSATION:", userID, accuserID);
-    //Check if voting is ongoing, accusations cannot be made while voting
-    if(votingTimeout) {
-        return;
-    }
+    if voting is ongoing, accusations cannot be made while voting
+        if(votingTimeout) {
+            return;
+        }
     //condition will be true if anything exists in the accusation array, ie if they have been accused this turn
     //if not accused, condition will be false
     if(alreadyAccused(userID)) {
@@ -138,7 +137,7 @@ let votingTimeout;
 let callbackUUID;
 let votingUserID;
 function startVillagerVoting(userID) {
-    Messaging.channelMsg(undefined, "The voting process on <@"+ userID+ "> has started! Write 'yes' to vote to kill and write 'no' to vote against killing.")
+    Messaging.channelMsg(undefined, "The voting process on <@"+ userID+ "> has started! Write 'yes' to vote to kill and write 'no' to vote against killing.");
     //Set a timeout to stop the voting, 45 second voting period for now
     votingTimeout = setTimeout(function() {stopVillagerVoting(userID)}, 45000);
     votingUserID = userID;
@@ -227,7 +226,6 @@ function stopVillagerVoting() {
 
 }
 
-
 function setRole(userID, role) {
     /*
     {
@@ -251,25 +249,44 @@ function setRole(userID, role) {
     Messaging.dmUser(userID, "You have been selected for the " + role + " role.");
 }
 
-// The nighttime loop
-function nightime(){
+// The nighttime activities function, with a callback
+function nighttime(cb){
+    // Make a "set" of vote promises, so that once everyone who does stuff in the night is done, can move on
     let votingPromises = [];
-    votingPromises.push(new Promise((result) => doctorVote(result)));
-    votingPromises.push(new Promise((result) => mafiaVote(result)));
-    votingPromises.push(new Promise((result) => detectiveVote(result)));
+    votingPromises.push(new Promise((resolve, reject) => doctorVote(resolve)));
+    votingPromises.push(new Promise((resolve, reject) => mafiaVote(resolve)));
+    votingPromises.push(new Promise((resolve, reject) => detectiveVote(resolve)));
+
+    Promise.all(votingPromises).then(function(resolve) {
+        if(gameState.mafiaAttemptThisTurn === gameState.savedThisTurn){
+            // Kill person
+            mafiaKillsPerson(gameState.mafiaAttemptThisTurn);
+        } else if(gameState.mafiaAttemptThisTurn !== undefined) {
+            // Attempted killing
+            Messaging.channelMsg(undefined, "During the night the mafia attempted to kill <@" + gameState.mafiaAttemptThisTurn + ">, yet thankfully the doctor saved them.");
+            gameState.mafiaAttemptThisTurn = undefined;
+        } else {
+            // No attempted killing, ie. Mafia didn't nominate anyone
+            Messaging.channelMsg(undefined, "Nothing happened during the night, the mafia must have taken a nap.");
+        }
+        resolve();
+    }).then(() => cb());
 }
 
 
 // Called to get the doctor's vote
-function doctorVote() {
-    let userID = Object.keys(gameState.players).find(key => gameState[key] === 'doctor'); // Lookup by key: https://stackoverflow.com/a/28191966/3196151
+function doctorVote(resolve) {
+    let userID = getUsersFromRole('doctor')[0];
 
     // Only get the vote if alive
     if(gameState.players[userID].alive){
+        console.log("Doctor alive, prompting for patient.");
         Messaging.dmUser(userID, "Who do you want to save tonight?", doctorPromptCallback);
     } else {
+        console.log("Doctor is dead, resolving anyways.");
         gameState.savedThisTurn = undefined;
     }
+    resolve();
 }
 
 // Helper function for the doctor prompting callback
@@ -278,6 +295,7 @@ function doctorPromptCallback(reply) {
     let mentions = reply.text.match(/<@(.*?)>/); // Match the first @mention
     if(mentions !== null) {
         if(!doctorSaveAttempt(mentions[1])){ // If unsuccessful in first save attempt
+            console.log("Invalid input for doctor save, prompting again.");
             Messaging.dmUser(reply.user, "Please @mention your choice, you can only pick one living person and not the same person two turns in a row.", doctorPromptCallback);
         }
     }
@@ -297,6 +315,28 @@ function doctorSaveAttempt(userID) {
     }
 }
 
+// Detective "Voting" for the person to investigate. Still need safety checks because could be non player
+function detectiveVote(resolve) {
+    let userID = getUsersFromRole('detective')[0];
+    Messaging.dmUser(userID, "Who do you want to investigate tonight?", detectivePromptCallback);
+    resolve();
+}
+
+// Callback for detective prompting
+function detectivePromptCallback(reply) {
+    // If they @mentioned someone
+    let mentions = reply.text.match(/<@(.*?)>/); // Match the first @mention
+    if(mentions !== null) {
+        if(gameState.players[mentions[1]] === undefined){ // If unsuccessful in first investigation attempt
+            console.log("Invalid input for detective investigate, prompting again.");
+            Messaging.dmUser(reply.user, "Please @mention your choice, you can only pick one living person and not the same person two turns in a row.", detectivePromptCallback);
+        } else {
+            console.log("Detective investigated " + mentions[1] + " who is a " + gameState.players[mentions[1]].role);
+            Messaging.dmUser(reply.user, "<@" + mentions[1] + "> is a " + gameState.players[mentions[1]].role + ".");
+        }
+    }
+}
+
 // When the town votes on a person to kill
 function lynchPerson(userID){
     console.log("Lynching " + userID);
@@ -311,6 +351,26 @@ function lynchPerson(userID){
     }
 }
 
+// When the mafia kills someone
+function mafiaKillsPerson(userID){
+    console.log("Mafia is killing " + userID);
+    let name = "<@" + userID + ">";
+    gameState.players[userID].alive = false;
+
+    // Alert the channel of their death, don't reveal alliance
+    Messaging.channelMsg(undefined, "During the night the mafia killed " + name + ".");
+}
+
+// Takes in a roll and returns userID for those with that roll, even if dead
+function getUsersFromRole(role) {
+    let matchingUserIDs = [];
+    for(let userID in gameState.players){
+        if(gameState.players[userID] === role){
+            matchingUserIDs.push(userID);
+        }
+    }
+    return matchingUserIDs;
+}
 
 // Helper to sample a randomly selected array element
 function removeElement(array){

@@ -1,3 +1,21 @@
+## mafia-chatbot
+
+This is a Slack chatbot that plays Mafia. Once installed in a workspace, a game can be started with
+`/startgame`. 
+Players then follow prompts in the chat to accuse and convict people, and the game continues.
+
+NOTE FOR DRAFT SUBMISSION: because it would be quite impractical for you, the evaluator, to setup your own slack workspace
+and attempt to mirror the setup of our workspace, you can take a look at the code in this submission instead.
+Because we are still developing the project in our slack workspace, it wouldn't be productive
+for you to try playing it there either (not to mention you need at least 5 people to play and you probably don't want to create a bunch of dummy slack accounts like we did).
+
+TL;DR: too difficult to submit something you can actually see functionality of in action. Please look at our code instead :)
+
+
+
+
+
+
 ## General Game Ideas
 
 ### Commands triggered from channel

@@ -17,10 +17,14 @@ app.use(express.urlencoded());
 
 app.post("/events", function(req, res) {
     console.log("received event:", req.body);
-    //Slack events url verification code
-    //res.send(req.body.challenge);
-    //Send the event to the event handling code so it can execute callbacks
-    events.executeCallbacks(req.body.event);
+    //Check if this is a verification message, ie if it has a challenge
+    if(req.body.challenge) {
+        res.send(req.body.challenge);
+    } else {
+        //Just regular event, dispatch
+        events.executeCallbacks(req.body.event);
+    }
+
 
 });
 

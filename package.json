@@ -1,0 +1,24 @@
+{
+  "name": "mafia-chatbot",
+  "version": "1.0.0",
+  "description": "mafia chatbot",
+  "main": "server.js",
+  "dependencies": {
+    "express": "^4.16.4"
+  },
+  "devDependencies": {},
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1",
+    "start": "node server.js"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/mwsundberg/mafia-chatbot.git"
+  },
+  "author": "",
+  "license": "UNLICENSED",
+  "bugs": {
+    "url": "https://github.com/mwsundberg/mafia-chatbot/issues"
+  },
+  "homepage": "https://github.com/mwsundberg/mafia-chatbot#readme"
+}

@@ -13,7 +13,7 @@ gameState object is laid out like this:
 - there is a dictionary called players that is keyed with the userid and values are objects that contain role, alive status, etc
 - Other info about the game state as needed
  */
-let gameState = {players: {}, running: false};
+let gameState = {players: {}, running: false, savedThisTurn: "", mafiaAttemptThisTurn: ""};
 
 // Give array of userids in array of strings that aren't prettyprint-able
 function assignRoles(userArray){
@@ -106,6 +106,45 @@ function setRole(userID, role) {
     //Next DM the user that they have been selected for the role
     //No callback, we don't care about their reply to this message
     Messaging.dmUser(userID, "You have been selected for the " + role + " role.");
+}
+
+// Called to get the doctor's vote
+function doctorVote(userID) {
+    // Only get the vote if alive
+    if(gameState.players[userID].alive){
+
+    } else {
+
+    }
+}
+
+// Doctor selecting person to save
+function doctorSaveAttempt(userID) {
+    console.log("Doctor tries to save " + userID);
+
+    // If the same person was saved last time, fail and retry
+    if(userID !== gameState.savedThisTurn){
+        console.log("Doctor succeeded in selecting " + userID + " to save.");
+        gameState.savedThisTurn = userID;
+        return true;
+    } else {
+        // Failing, saved twice
+        console.log("Doctor tried to save " + userID + " twice in a row, failing.");
+        return false;
+    }
+}
+
+// When the town votes on a person to kill
+function lynchPerson(userID){
+    console.log("Lynching " + userID);
+    gameState.players[userID].alive = false;
+
+    // Alert the channel of their death and alliance
+    if(gameState.players[userID].role === 'mafia'){
+        Messaging.channelMsg(undefined, "The vote passed and " + getName(userID) + " is brought to the gallows and hanged until dead. In their final breaths they reveal that they were part of the Mafia.");
+    } else {
+        Messaging.channelMsg(undefined, "The vote passed and " + getName(userID) + " is brought to the gallows and hanged until dead. However, they were not part of the Mafia.");
+    }
 }
 
 

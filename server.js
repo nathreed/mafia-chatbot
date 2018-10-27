@@ -140,6 +140,12 @@ function identifyActiveUsers(allUsers, cb) {
 
 }
 
+// Gets user info from userID
+function getName(userID){
+    //TODO
+    return "haha";
+}
+
 //Function gets called when we get a getrules comamnd from slack
 app.post("/cmd/getrules", function (req,res) {
 	console.log("getrules command");

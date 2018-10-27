@@ -148,8 +148,19 @@ function setRole(userID, role) {
     Messaging.dmUser(userID, "You have been selected for the " + role + " role.");
 }
 
+// The nighttime loop
+function daytime(){
+    let votingPromises = [];
+    votingPromises.push(new Promise((result) => doctorVote(result)));
+    votingPromises.push(new Promise((result) => mafiaVote(result)));
+    votingPromises.push(new Promise((result) => detectiveVote(result)));
+}
+
+
 // Called to get the doctor's vote
-function doctorVote(userID) {
+function doctorVote() {
+    let userID = Object.keys(gameState.players).find(key => gameState[key] === 'doctor'); // Lookup by key: https://stackoverflow.com/a/28191966/3196151
+
     // Only get the vote if alive
     if(gameState.players[userID].alive){
         Messaging.dmUser(userID, "Who do you want to save tonight?", doctorPromptCallback);

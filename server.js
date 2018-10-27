@@ -8,13 +8,17 @@ const port = 8080;
 
 const botToken = require("./secrets")["bot-token"];
 
+const events = require("./events");
+
 app.use(express.json());
 app.use(express.urlencoded());
 
 app.post("/events", function(req, res) {
-    console.log(req.body);
+    console.log("received event:", req.body);
     //Slack events url verification code
     //res.send(req.body.challenge);
+    //Send the event to the event handling code so it can execute callbacks
+    events.executeCallbacks(req.body.event);
 
 });
 

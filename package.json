@@ -4,7 +4,8 @@
   "description": "mafia chatbot",
   "main": "server.js",
   "dependencies": {
-    "express": "^4.16.4"
+    "express": "^4.16.4",
+    "uuid": "^3.3.2"
   },
   "devDependencies": {},
   "scripts": {

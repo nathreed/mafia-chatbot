@@ -21,7 +21,7 @@ or have the voting occur via slack app buttons if we can do that
 - /endgame -> /cmd/endgame
 
 
-#### Mafia Consenus
+#### Mafia Consensus
 
 Once it is time for the mafia to decide who to kill, a countdown starts in their group channel.
 They must arrive at a consensus by the end of the countdown. Mafia members indicate who they want to 
@@ -32,3 +32,16 @@ immediately. At the end of the countdown, the person to kill is determined as fo
 
 Mafia members can change their vote on who to kill by submitting a new kill mention - only the most recent kill mention
 for each mafia member is saved and used in the final consideration.
+
+
+#### Villager Accusing/Consensus
+
+During the day, villagers can accuse someone using the `/accuse @Name` command. Once there has been an accusation, a different user
+must use `/second @Name` to second the accusation. As soon as there has been an accusation and a second, a countdown starts. Villagers vote to kill
+by writing `vote yes` in the chat and vote not to by writing `vote no` in the chat. Villagers can vote as many times as they like and only the last vote is counted.
+
+Voting terminates in one of two ways:
+- if all the villagers vote yes
+- when the countdown expires
+
+If the second option is taken, the accused is killed if the majority of the votes cast indicate that they should be.

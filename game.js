@@ -6,7 +6,8 @@ const Messaging = require("./messaging");
 
 module.exports = {
     debugAssignRoles: debugAssignRoles,
-    doctorVote: doctorVote
+    doctorVote: doctorVote,
+    registerAccusation: registerAccusation
 };
 
 /*
@@ -14,7 +15,7 @@ gameState object is laid out like this:
 - there is a dictionary called players that is keyed with the userid and values are objects that contain role, alive status, etc
 - Other info about the game state as needed
  */
-let gameState = {players: {}, running: false, savedThisTurn: "", mafiaAttemptThisTurn: ""};
+let gameState = {players: {}, running: false, savedThisTurn: "", mafiaAttemptThisTurn: "", accusedThisTurn: []};
 
 // Give array of userids in array of strings that aren't prettyprint-able
 function assignRoles(userArray){
@@ -85,6 +86,44 @@ function debugAssignRoles(userArray) {
         console.log(assigningUser + " is a Villager.");
     }
 
+}
+
+//This function registers an accusation on the given user. Also notifies the chat that they have been accused and who did it
+//Accusation counts as a second if the user has already been accused
+function registerAccusation(userID, accuserID) {
+    console.log("REGISTER ACCUSATION:", userID, accuserID);
+    //condition will be true if anything exists in the accusation array, ie if they have been accused this turn
+    //if not accused, condition will be false
+    if(alreadyAccused(userID)) {
+        //second
+
+        //Check that the accuser ID isn't the same as the original accuser ID, so that the accuser cannot second their own accusation
+        //console.log("already accused value:", alreadyAccused(userID));
+        if(alreadyAccused(userID) !== accuserID) {
+            //Register a second
+            Messaging.channelMsg(undefined, "<@"+accuserID+"> has seconded the accusation on <@"+userID+">!");
+            //begin voting process
+            console.log("voting process begin!");
+        } else {
+            console.log("CANNOT SECOND OWN ACCUSATION!");
+        }
+
+    } else {
+        //Regular accusation
+        gameState.accusedThisTurn.push({accuserID: accuserID, userID: userID});
+        Messaging.channelMsg(undefined, "<@"+accuserID+"> has accused <@"+userID+">! Second by using /accuse on this person as well!");
+    }
+}
+
+//This function checks the accusation information to see if a user has been already accused
+//If so, it returns their accuser's ID, otherwise it returns undefined
+function alreadyAccused(userID) {
+    for(let i=0; i<gameState.accusedThisTurn.length; i++) {
+        if(gameState.accusedThisTurn[i].userID === userID) {
+            return gameState.accusedThisTurn[i].accuserID;
+        }
+    }
+    return undefined;
 }
 
 function setRole(userID, role) {

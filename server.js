@@ -149,7 +149,54 @@ app.post("/cmd/getrules", function (req,res) {
 //Function gets called when we get an accuse command from slack
 app.post("/cmd/accuse", function (req, res) {
 	console.log("accuse command");
-	res.send("accuse");
+	console.log(req.body);
+
+	res.send(null);
+	//Need to extract username from body and resolve to actual user ID
+    //remove the @ to get the username, then we can resolve
+
+    let accusedName = req.body.text.slice(1,req.body.text.length);;
+    console.log("ACCUSED NAME IS:", accusedName);
+    //Setup request to users.list endpoint so we can return all the users and associate the name to an ID
+    const reqData = qs.stringify({
+        token: botToken,
+        limit: 100 //we probably won't ever have that many people playing anyway...
+    });
+
+    const options = {
+        hostname: "slack.com",
+        path: "/api/users.list?"+reqData
+    };
+
+
+    //console.log("making get request for username resolution");
+    https.get(options, function(res) {
+        let fullData = "";
+        res.on("data", function(data) {
+            fullData += data;
+        });
+
+        res.on("end", function() {
+            //We have all the data, go through it and find the relevant thing
+            let parsedData = JSON.parse(fullData);
+            //console.log("PARSED DATA:"+JSON.stringify(parsedData, null, 4));
+
+            for(let i=0; i<parsedData.members.length; i++) {
+                //console.log("checking", parsedData.members[i]);
+                if(parsedData.members[i].name === accusedName) {
+                    Game.registerAccusation(parsedData.members[i].id, req.body.user_id);
+                    break;
+                }
+            }
+
+        });
+
+        res.on("error", function(err) {
+           console.log("Error with request to users.list to resolve username to ID:", err);
+        });
+    });
+
+
 });
 
 app.post("/cmd/endgame", function(req, res) {

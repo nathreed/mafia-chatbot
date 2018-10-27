@@ -149,7 +149,7 @@ function setRole(userID, role) {
 }
 
 // The nighttime loop
-function daytime(){
+function nightime(){
     let votingPromises = [];
     votingPromises.push(new Promise((result) => doctorVote(result)));
     votingPromises.push(new Promise((result) => mafiaVote(result)));

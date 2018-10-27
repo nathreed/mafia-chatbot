@@ -10,6 +10,7 @@ const botToken = require("./secrets")["bot-token"];
 
 const events = require("./events");
 const Messaging = require("./messaging");
+const Game = require("./game");
 
 app.use(express.json());
 app.use(express.urlencoded());
@@ -79,6 +80,7 @@ app.post("/cmd/startgame", function (req,res) {
             identifyActiveUsers(usersData.members, function(activeUsers) {
                 console.log("the following users are active:", activeUsers);
                 //Assign roles for the game from the list of active users
+                Game.debugAssignRoles(activeUsers);
             });
         });
     });

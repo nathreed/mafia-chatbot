@@ -19,3 +19,16 @@ or have the voting occur via slack app buttons if we can do that
 - /getrules -> /cmd/getrules
 - /accuse -> /cmd/accuse
 - /endgame -> /cmd/endgame
+
+
+#### Mafia Consenus
+
+Once it is time for the mafia to decide who to kill, a countdown starts in their group channel.
+They must arrive at a consensus by the end of the countdown. Mafia members indicate who they want to 
+kill by using `kill @person-mention` in the chat. If 100% of mafia members vote for the same person, the voting ends
+immediately. At the end of the countdown, the person to kill is determined as follows:
+- if there was at least 1 kill mention, the person with the most kill mentions dies
+- if there were no kill mentions, nobody dies
+
+Mafia members can change their vote on who to kill by submitting a new kill mention - only the most recent kill mention
+for each mafia member is saved and used in the final consideration.

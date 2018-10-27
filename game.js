@@ -4,7 +4,16 @@ Main game logic lives in this file
 
 const Messaging = require("./messaging");
 
-let gameState = {};
+module.exports = {
+    debugAssignRoles: debugAssignRoles
+};
+
+/*
+gameState object is laid out like this:
+- there is a dictionary called players that is keyed with the userid and values are objects that contain role, alive status, etc
+- Other info about the game state as needed
+ */
+let gameState = {players: {}, running: false};
 
 // Give array of userids in array of strings that aren't prettyprint-able
 function assignRoles(userArray){
@@ -59,9 +68,32 @@ function assignRoles(userArray){
     }
 }
 
+function debugAssignRoles(userArray) {
+    //Make nathan the mafia
+    setRole("UDR58191C", "mafia");
+    //Remove nathan object from array
+    userArray.splice(userArray.indexOf("UDR58191C"), 1);
+
+
+    let assigningUser;
+
+    // Assign rest to villager
+    while(userArray.length > 0) {
+        assigningUser = removeElement(userArray);
+        setRole(assigningUser, 'villager');
+        console.log(assigningUser + " is a Villager.");
+    }
+
+}
+
 function setRole(userID, role) {
+    //If the player doesn't exist in the game state array, add them
+    gameState.players[userID] = {};
     //First set the role in the gameState object for our internal state keeping
-    gameState[role] = userID;
+    gameState.players[userID].role = role;
+    //Everybody starts out alive, so make them alive as well
+    gameState.players[userID].alive = true;
+
     //Next DM the user that they have been selected for the role
     //No callback, we don't care about their reply to this message
     Messaging.dmUser(userID, "You have been selected for the " + role + " role.");

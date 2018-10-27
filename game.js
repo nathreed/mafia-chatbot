@@ -3,6 +3,7 @@ Main game logic lives in this file
  */
 
 const Messaging = require("./messaging");
+const Events = require("./events");
 
 module.exports = {
     debugAssignRoles: debugAssignRoles,
@@ -15,7 +16,7 @@ gameState object is laid out like this:
 - there is a dictionary called players that is keyed with the userid and values are objects that contain role, alive status, etc
 - Other info about the game state as needed
  */
-let gameState = {players: {}, running: false, savedThisTurn: "", mafiaAttemptThisTurn: "", accusedThisTurn: []};
+let gameState = {players: {}, running: false, savedThisTurn: "", mafiaAttemptThisTurn: "", accusedThisTurn: [], playerVotesThisTurn: {}};
 
 // Give array of userids in array of strings that aren't prettyprint-able
 function assignRoles(userArray){
@@ -92,6 +93,10 @@ function debugAssignRoles(userArray) {
 //Accusation counts as a second if the user has already been accused
 function registerAccusation(userID, accuserID) {
     console.log("REGISTER ACCUSATION:", userID, accuserID);
+    //Check if voting is ongoing, accusations cannot be made while voting
+    if(votingTimeout) {
+        return;
+    }
     //condition will be true if anything exists in the accusation array, ie if they have been accused this turn
     //if not accused, condition will be false
     if(alreadyAccused(userID)) {
@@ -104,6 +109,7 @@ function registerAccusation(userID, accuserID) {
             Messaging.channelMsg(undefined, "<@"+accuserID+"> has seconded the accusation on <@"+userID+">!");
             //begin voting process
             console.log("voting process begin!");
+            startVillagerVoting(userID);
         } else {
             console.log("CANNOT SECOND OWN ACCUSATION!");
         }
@@ -126,6 +132,102 @@ function alreadyAccused(userID) {
     return undefined;
 }
 
+//This function manages the voting process for who to kill
+//The voting process gets started when there is an accusation and a second
+let votingTimeout;
+let callbackUUID;
+let votingUserID;
+function startVillagerVoting(userID) {
+    Messaging.channelMsg(undefined, "The voting process on <@"+ userID+ "> has started! Write 'yes' to vote to kill and write 'no' to vote against killing.")
+    //Set a timeout to stop the voting, 45 second voting period for now
+    votingTimeout = setTimeout(function() {stopVillagerVoting(userID)}, 45000);
+    votingUserID = userID;
+    //Register callback for villager votes
+    callbackUUID = Events.registerCallbackChannelReply(Messaging.getDefaultChannelID(), villagerVoteCallback);
+
+}
+
+//This function is called whenever anyone says anything in the chat during the voting period.
+//Its responsibility is to determine which messages are kill votes and tally them accordingly
+function villagerVoteCallback(eventData) {
+    if(eventData.text === "yes") {
+        //Yes vote
+        gameState.playerVotesThisTurn[eventData.user_id] = true;
+
+    } else if(eventData.text === "no") {
+        //No vote
+        gameState.playerVotesThisTurn[eventData.user_id] = false;
+    }
+    //Now that vote has been recorded, check if everyone has voted
+    if(Object.keys(gameState.playerVotesThisTurn).length === Object.keys(gameState.players).length) {
+        //All players have submitted some kind of vote, check if they are all yes
+        let allYes = true;
+        for(let i=0; i<Object.keys(gameState.playerVotesThisTurn).length; i++) {
+            let key = Object.keys(gameState.playerVotesThisTurn)[i];
+            if(gameState.playerVotesThisTurn[key] === false) {
+                allYes = false;
+                break;
+            }
+        }
+
+        if(allYes) {
+            //Everyone has voted AND they all voted yes
+            //End the voting early
+            //First kill the timeout
+            clearTimeout(votingTimeout);
+            //Next cancel this callback so we dont get more updates
+            Events.deregisterCallback(callbackUUID);
+            //Next call the stopVillagerVoting function which will compute the results of the voting
+            stopVillagerVoting();
+        }
+    }
+}
+
+function stopVillagerVoting() {
+    clearTimeout(votingTimeout); //clear the timeout if it didn't get cleared already
+    Messaging.channelMsg(undefined, "The voting process on <@"+ votingUserID+ "> has stopped.");
+    //COMPUTE RESULTS AND THEN CLEAR VOTES FOR THIS TURN!
+
+    //Step 1: compute results
+    let yesCount = 0;
+    let noCount = 0;
+
+    for(let i=0; i<Object.keys(gameState.playerVotesThisTurn).length; i++) {
+        let key = Object.keys(gameState.playerVotesThisTurn)[i];
+        if(gameState.playerVotesThisTurn[key] === false) {
+            noCount++;
+        } else {
+            yesCount++;
+        }
+    }
+
+
+    if(yesCount > noCount) {
+        //Voted to kill
+        let deadID = votingUserID;
+        //Cleanup before we leave
+        votingUserID = "";
+        callbackUUID = "";
+        votingTimeout = undefined;
+        gameState.playerVotesThisTurn = {};
+        lynchPerson(deadID);
+    } else if(noCount > yesCount) {
+        //Voted not to kill
+        Messaging.channelMsg(undefined, "<@"+votingUserID+"> was found not guilty.");
+    } else {
+        //Tie, person doesn't die
+        Messaging.channelMsg(undefined, "<@"+votingUserID+"> was found not guilty because the vote was tied.");
+    }
+    //Cleanup before we leave
+    votingUserID = "";
+    callbackUUID = "";
+    votingTimeout = undefined;
+    gameState.playerVotesThisTurn = {};
+
+
+}
+
+
 function setRole(userID, role) {
     /*
     {
@@ -133,7 +235,8 @@ function setRole(userID, role) {
 
             "nreed7": {role: "mafia", alive: true}
         },
-        running: true
+        running: true,
+        ...
     }
      */
     //If the player doesn't exist in the game state array, add them

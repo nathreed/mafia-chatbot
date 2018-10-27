@@ -11,13 +11,18 @@ module.exports = {
     setDefaultChannelID: setDefaultChannelID,
     dmUser: dmUser,
     groupMessage: groupMessage,
-    channelMsg: channelMsg
+    channelMsg: channelMsg,
+    getDefaultChannelID: getDefaultChannelID
 };
 
 let defaultChannelID;
 
 function setDefaultChannelID(id) {
     defaultChannelID = id;
+}
+
+function getDefaultChannelID() {
+    return defaultChannelID;
 }
 
 //DM a specific user

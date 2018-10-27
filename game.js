@@ -92,7 +92,7 @@ function debugAssignRoles(userArray) {
 //Accusation counts as a second if the user has already been accused
 function registerAccusation(userID, accuserID) {
     console.log("REGISTER ACCUSATION:", userID, accuserID);
-    if voting is ongoing, accusations cannot be made while voting
+    // if voting is ongoing, accusations cannot be made while voting
         if(votingTimeout) {
             return;
         }

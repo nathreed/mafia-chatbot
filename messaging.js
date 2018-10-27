@@ -9,8 +9,15 @@ const events = require("./events");
 
 module.exports = {
     dmUser: dmUser,
-    channelMsg: channelMsg
+    channelMsg: channelMsg,
+    setDefaultChannelID: setDefaultChannelID
 };
+
+let defaultChannelID;
+
+function setDefaultChannelID(id) {
+    defaultChannelID = id;
+}
 
 //DM a specific user
 //callback will be called with the first reply from the user
@@ -77,6 +84,9 @@ function dmUser(userID, message, cb) {
 //Send a message to the entire channel
 function channelMsg(channelID, message) {
     //Much simpler than user dm code, we just use the chat.postMessage endpoint
+    if(channelID === undefined) {
+        channelID = defaultChannelID;
+    }
 
     const msgReqData = qs.stringify({
         token: botToken,

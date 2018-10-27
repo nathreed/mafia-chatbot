@@ -9,6 +9,7 @@ const port = 8080;
 const botToken = require("./secrets")["bot-token"];
 
 const events = require("./events");
+const Messaging = require("./messaging");
 
 app.use(express.json());
 app.use(express.urlencoded());
@@ -41,6 +42,8 @@ app.post("/cmd/startgame", function (req,res) {
      */
 
     let channelID = req.body["channel_id"];
+    //Set this channel ID as the default channel ID that the game is running in
+    Messaging.setDefaultChannelID(channelID);
 
     //Step 1: Grab list of every user in the chat so we can check if they are active
 
@@ -75,6 +78,7 @@ app.post("/cmd/startgame", function (req,res) {
             let usersData = JSON.parse(fullData);
             identifyActiveUsers(usersData.members, function(activeUsers) {
                 console.log("the following users are active:", activeUsers);
+                //Assign roles for the game from the list of active users
             });
         });
     });
@@ -144,6 +148,11 @@ app.post("/cmd/getrules", function (req,res) {
 app.post("/cmd/accuse", function (req, res) {
 	console.log("accuse command");
 	res.send("accuse");
+});
+
+app.post("/cmd/endgame", function(req, res) {
+    console.log("end game command");
+    res.send("end game");
 });
 
 app.listen(port, () => console.log(`Example app listening on port ${port}!`));

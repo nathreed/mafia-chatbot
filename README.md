@@ -4,6 +4,8 @@
 1. /startgame command - takes all users in the channel and makes a game with them, DMing each user their role. Options: timed and untimed modes
 1. /getrules command - prints rules out to the channel
 1. /accuse - accuse a user of being the mafia. Puts a message in the channel that has a button that, when clicked, registers a "second" on the accusation
+1. /endgame command - ends a game if there is one currently going
+
 
 For the individual DMs with the roles, Mafia, doctors, etc, they get DMs asking who they want to pick and they @-mention a person
 
@@ -16,3 +18,4 @@ or have the voting occur via slack app buttons if we can do that
 - /startgame -> /cmd/startgame
 - /getrules -> /cmd/getrules
 - /accuse -> /cmd/accuse
+- /endgame -> /cmd/endgame

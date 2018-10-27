@@ -1,9 +1,20 @@
+/*
+Main game logic lives in this file
+ */
+
+const Messaging = require("./messaging");
+
+let gameState = {};
+
 // Give array of userids in array of strings that aren't prettyprint-able
 function assignRoles(userArray){
     // Only run if enough players
     if(userArray.length < 5){
         console.log("Not enough players");
-        //TODO alert users that there aren't enough players
+        //Alert users
+        //undefined for channel ID uses default channel ID, which is going to be the one that the game is in
+        //We do this because we don't want to mess with Slack API channel ids in the main game logic here
+        Messaging.channelMsg(undefined, "Sorry, there are not enough active users in this channel to play Mafia.");
         return;
     }
 
@@ -46,6 +57,14 @@ function assignRoles(userArray){
         setRole(assigningUser, 'villager');
         console.log(assigningUser + " is a Villager.");
     }
+}
+
+function setRole(userID, role) {
+    //First set the role in the gameState object for our internal state keeping
+    gameState[role] = userID;
+    //Next DM the user that they have been selected for the role
+    //No callback, we don't care about their reply to this message
+    Messaging.dmUser(userID, "You have been selected for the " + role + " role.");
 }
 
 

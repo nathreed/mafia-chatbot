@@ -8,9 +8,10 @@ const botToken = require("./secrets")["bot-token"];
 const events = require("./events");
 
 module.exports = {
+    setDefaultChannelID: setDefaultChannelID,
     dmUser: dmUser,
-    channelMsg: channelMsg,
-    setDefaultChannelID: setDefaultChannelID
+    groupMessage: groupMessage,
+    channelMsg: channelMsg
 };
 
 let defaultChannelID;
@@ -67,7 +68,7 @@ function dmUser(userID, message, cb) {
                 res.on("end", function() {
                     //The request is finished, we can register a callback for the user reply so that we can send it back to our callback
                     let cbUUID = events.registerCallbackUserChannelReply(userID, convID, function(reply) {
-                        //Deregister the callback so that we only get the first reply, not any otherss
+                        //Deregister the callback so that we only get the first reply, not any others
                         events.deregisterCallback(cbUUID);
                         cb(reply);
                     })
@@ -165,4 +166,3 @@ function channelMsg(channelID, message) {
 
     https.get(msgReqOptions); //no need for a callback, we don't really care about whether the message got sent correctly or not
 }
-

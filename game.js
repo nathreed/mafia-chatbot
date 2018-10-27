@@ -5,7 +5,8 @@ Main game logic lives in this file
 const Messaging = require("./messaging");
 
 module.exports = {
-    debugAssignRoles: debugAssignRoles
+    debugAssignRoles: debugAssignRoles,
+    doctorVote: doctorVote
 };
 
 /*
@@ -112,18 +113,27 @@ function setRole(userID, role) {
 function doctorVote(userID) {
     // Only get the vote if alive
     if(gameState.players[userID].alive){
-
+        Messaging.dmUser(userID, "Who do you want to save tonight?", doctorPromptCallback);
     } else {
-
+        gameState.savedThisTurn = undefined;
     }
 }
 
-// Doctor selecting person to save
-function doctorSaveAttempt(userID) {
-    console.log("Doctor tries to save " + userID);
+// Helper function for the doctor prompting callback
+function doctorPromptCallback(reply) {
+    // If they @mentioned someone
+    let mentions = reply.text.match(/<@(.*?)>/); // Match the first @mention
+    if(mentions !== null) {
+        if(!doctorSaveAttempt(mentions[1])){ // If unsuccessful in first save attempt
+            Messaging.dmUser(reply.user, "Please @mention your choice, you can only pick one living person and not the same person two turns in a row.", doctorPromptCallback);
+        }
+    }
+}
 
-    // If the same person was saved last time, fail and retry
-    if(userID !== gameState.savedThisTurn){
+// Helper for doctor selecting person to save
+function doctorSaveAttempt(userID) {
+    // If the same person was saved last time or they're dead
+    if(userID !== gameState.savedThisTurn && gameState.players[userID].alive){
         console.log("Doctor succeeded in selecting " + userID + " to save.");
         gameState.savedThisTurn = userID;
         return true;
@@ -137,13 +147,14 @@ function doctorSaveAttempt(userID) {
 // When the town votes on a person to kill
 function lynchPerson(userID){
     console.log("Lynching " + userID);
+    let name = "<@" + userID + ">";
     gameState.players[userID].alive = false;
 
     // Alert the channel of their death and alliance
     if(gameState.players[userID].role === 'mafia'){
-        Messaging.channelMsg(undefined, "The vote passed and " + getName(userID) + " is brought to the gallows and hanged until dead. In their final breaths they reveal that they were part of the Mafia.");
+        Messaging.channelMsg(undefined, "The vote passed and " + name + " is brought to the gallows and hanged until dead. In their final breaths they reveal that they were part of the Mafia.");
     } else {
-        Messaging.channelMsg(undefined, "The vote passed and " + getName(userID) + " is brought to the gallows and hanged until dead. However, they were not part of the Mafia.");
+        Messaging.channelMsg(undefined, "The vote passed and " + name + " is brought to the gallows and hanged until dead. However, they were not part of the Mafia.");
     }
 }
 

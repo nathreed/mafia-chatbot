@@ -87,6 +87,15 @@ function debugAssignRoles(userArray) {
 }
 
 function setRole(userID, role) {
+    /*
+    {
+        players: {
+
+            "nreed7": {role: "mafia", alive: true}
+        },
+        running: true
+    }
+     */
     //If the player doesn't exist in the game state array, add them
     gameState.players[userID] = {};
     //First set the role in the gameState object for our internal state keeping

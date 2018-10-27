@@ -5,6 +5,7 @@ Callbacks for specific events can be registered, with options such as only trigg
 
 module.exports = {
     registerCallbackUserChannelReply: registerCallbackUserChannelReply,
+    registerCallbackChannelReply: registerCallbackChannelReply,
     deregisterCallback: deregisterCallback,
     executeCallbacks: executeCallbacks
 };
@@ -18,10 +19,29 @@ const uuid = require("uuid");
 //Event types use the same types as slack API
 let eventsCallbackRegistry = {};
 
+//This function is for registering a callback for when a specific user replies to a specific channel
 function registerCallbackUserChannelReply(userID, channelID, cb) {
     const criteria = {
         channel: channelID,
         user: userID,
+        type: "message"
+    };
+
+    const cbReg = {
+        criteria: criteria,
+        cb: cb,
+        uuid: uuid.v4()
+    };
+
+    eventsCallbackRegistry[cbReg.uuid] = cbReg;
+
+    return cbReg.uuid;
+}
+
+//This function is for registering a callback for when any user replies to a specific channel
+function registerCallbackChannelReply(channelID, cb) {
+    const criteria = {
+        channel: channelID,
         type: "message"
     };
 

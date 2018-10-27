@@ -81,6 +81,70 @@ function dmUser(userID, message, cb) {
     })
 }
 
+//Starts a group message with the people in userArr
+//Callback gets called every time *any* user in the group message channel replies to the channel
+//This way, we can easily tally the votes/kill mentions/etc
+//The callback also is given the UUID for cb registration as its second parameter, that way it can cancel notifications for any further replies
+function groupMessage(userArr, message, cb) {
+    //First transform the userArr into a comma separated list of userids for the slack api
+    let userList = "";
+    for(let i=0; i<userArr.length; i++) {
+        userList += ","+userArr[i];
+    }
+    //Take the first comma off the userList
+    userList.splice(0,1);
+
+
+    //Now setup a call to slack api for creating conversation with these users
+    const reqData = qs.stringify({
+        token: botToken,
+        users: userList
+    });
+
+    const options = {
+        hostname: "slack.com",
+        path: "/api/conversations.open?"+reqData
+    };
+
+    https.get(options, function(res) {
+        let fullData = "";
+        res.on("data", function(data) {
+            fullData += data;
+        });
+
+        res.on("end", function() {
+            //We have all the data, grab the conversation ID and send the message
+
+            let convID = JSON.parse(fullData).channel.id;
+            //Setup call to the slack API to send the message
+            const msgReqData = qs.stringify({
+                token: botToken,
+                channel: convID,
+                text: message
+            });
+
+            const msgReqOptions = {
+                hostname: "slack.com",
+                path: "/api/chat.postMessage?"+msgReqData
+            };
+
+            https.get(msgReqOptions, function(res) {
+                res.on("end", function() {
+                    //register callback with the events system here
+                    let cbUUID = events.registerCallbackChannelReply(convID, function(reply) {
+                        cb(reply, cbUUID);
+                    });
+                })
+            });
+
+        });
+
+        res.on("error", function(err) {
+            console.log("ERROR setting up group message:", err);
+        })
+    });
+}
+
 //Send a message to the entire channel
 function channelMsg(channelID, message) {
     //Much simpler than user dm code, we just use the chat.postMessage endpoint

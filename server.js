@@ -50,7 +50,7 @@ app.post("/cmd/startgame", function (req,res) {
         path: "/api/conversations.members?"+encodedData
     };
 
-    console.log("about to send request to", options.path);
+    //console.log("about to send request to", options.path);
 
 
 
@@ -68,6 +68,10 @@ app.post("/cmd/startgame", function (req,res) {
             //We have all the data, now do stuff with it
             console.log(botToken);
             console.log(fullData);
+            let usersData = JSON.parse(fullData);
+            identifyActiveUsers(usersData.members, function(activeUsers) {
+                console.log("the following users are active:", activeUsers);
+            });
         });
     });
 
@@ -75,7 +79,58 @@ app.post("/cmd/startgame", function (req,res) {
 
 });
 
-//Function gets called when we get a getrules command from slack
+//Takes the list of all users we got from slack and calls the callback with a list of only the active ones.
+function identifyActiveUsers(allUsers, cb) {
+    let userPromises = [];
+    for(let i=0; i<allUsers.length; i++) {
+        //Setup a promise for fetching the data
+        userPromises.push(new Promise(function (resolve, reject) {
+            const requestData = qs.stringify({
+                token: botToken,
+                user: allUsers[i]
+            });
+
+            const options = {
+                hostname: "slack.com",
+                path: "/api/users.getPresence?"+requestData
+            };
+
+            https.get(options, function(res) {
+                let fullData = "";
+                res.on("data", function(data) {
+                    fullData += data;
+                });
+
+                res.on("end", function() {
+                    resolve({user: allUsers[i], data: JSON.parse(fullData)});
+                });
+
+                res.on("error", function(err) {
+                    reject(err);
+                });
+
+            });
+
+        }));
+    }
+
+    let activeUsers = [];
+    Promise.all(userPromises).then(function(result) {
+        //console.log("result from promise:", result);
+
+        for(let i=0; i<result.length; i++) {
+            if(result[i].data["presence"] === "active") {
+                activeUsers.push(result[i].user);
+            }
+        }
+
+    }).then(function() {
+        cb(activeUsers);
+    });
+
+}
+
+//Function gets called when we get a getrules comamnd from slack
 app.post("/cmd/getrules", function (req,res) {
 	console.log("getrules command");
 	res.send("setrules");

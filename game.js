@@ -177,7 +177,15 @@ function villagerVoteCallback(eventData) {
     }
     //Now that vote has been recorded, check if everyone has voted
     console.log("THERE ARE THIS MANY PLAYERS:", Object.keys(gameState.players).length);
-    if(Object.keys(gameState.playerVotesThisTurn).length === Object.keys(gameState.players).length) {
+    //Determine the number of players that are alive
+    let aliveCount = 0;
+    for(let p in gameState.players) {
+        if(p.alive) {
+            aliveCount++;
+        }
+    }
+    console.log("THIS MANY PLAYERS ARE ALIVE:", aliveCount);
+    if(Object.keys(gameState.playerVotesThisTurn).length === aliveCount) {
         //All players have submitted some kind of vote, check if they are all yes
         let allYes = true;
         for(let key in gameState.playerVotesThisTurn) {

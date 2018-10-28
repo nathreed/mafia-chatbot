@@ -431,12 +431,12 @@ function nighttime(){
     return Promise.all(votingPromises).then(function() {
         console.log("Made it through all of the promises for doctors, etc.");
         if(gameState.mafiaAttemptThisTurn === gameState.savedThisTurn){
-            // Kill person
-            mafiaKillsPerson(gameState.mafiaAttemptThisTurn);
-        } else if(gameState.mafiaAttemptThisTurn !== undefined) {
             // Attempted killing
             Messaging.channelMsg(undefined, "During the night the mafia attempted to kill <@" + gameState.mafiaAttemptThisTurn + ">, yet thankfully the doctor saved them.");
             gameState.mafiaAttemptThisTurn = undefined;
+        } else if(gameState.mafiaAttemptThisTurn !== undefined) {
+            // Kill person
+            mafiaKillsPerson(gameState.mafiaAttemptThisTurn);
         } else {
             // No attempted killing, ie. Mafia didn't nominate anyone
             Messaging.channelMsg(undefined, "Nothing happened during the night, the mafia must have taken a nap.");
@@ -562,7 +562,8 @@ function mafiaVoteCallback(eventData) {
         // If consensus reached, just kill the person and break the timeouts or whatever
 
         if(allSame){
-            console.log("Consensus Reached");
+            console.log("Mafia consensus reached.");
+            Messaging.channelMsg(gameState.mafiaChannelID, "A consensus was reached, <@" + userID + "> will be killed.");
             gameState.mafiaAttemptThisTurn = userID;
 
             // Clean up the mess

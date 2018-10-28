@@ -176,7 +176,7 @@ function checkGameOver() {
 }
 
 function gameCleanup() {
-
+    console.log("GAMECLEANUP called.");
     Messaging.closeConversation(gameState.mafiaChannelID);
     gameState.mafiaChannelID = "";
     gameState.mafiaAttemptThisTurn = "";
@@ -367,8 +367,6 @@ function stopVillagerVoting(resolve) {
 // Making a group with all of the Mafia in them
 function startMafiaGroup() {
     // Get all Mafia members
-
-
     let mafiaMembers = getUsersFromRole('mafia');
     console.log("IDENTIFIED ALL MAFIA MEMBERS:", mafiaMembers);
 
@@ -515,7 +513,7 @@ let mafiaVoteTimeout;
 let mafiaCallbackUUID;
 let mafiaResolve;
 function mafiaVote(resolve) {
-    console.log("Mafia voting, channel id " + gameState.mafiaChannelID);
+    console.log("Mafia voting, channel id " + gameState.mafiaChannelID + ".");
 
     // Message the channel
     Messaging.channelMsg(gameState.mafiaChannelID, "<!channel> please vote on who to kill. @mention people to nominate them, once everyone has reached a consensus or the timer has run out the majority nominee will be killed.");

@@ -12,7 +12,8 @@ module.exports = {
     dmUser: dmUser,
     groupMessage: groupMessage,
     channelMsg: channelMsg,
-    getDefaultChannelID: getDefaultChannelID
+    getDefaultChannelID: getDefaultChannelID,
+    closeConversation: closeConversation
 };
 
 let defaultChannelID;
@@ -135,12 +136,23 @@ function groupMessage(userArr, message, cb) {
             };
 
             https.get(msgReqOptions, function(res) {
+                console.log("INITIAL GROUP MSG POST MAIN CB");
                 res.on("end", function() {
+                    console.log("INITIAL GROUP MESSAGE SEND REQ END");
                     //register callback with the events system here
                     let cbUUID = events.registerCallbackChannelReply(convID, function(reply) {
+                        console.log("CHANNEL REPLY ON GROUP MESSAGE CHANNEL!!!");
                         cb(reply, convID, cbUUID);
                     });
-                })
+                });
+
+                res.on("data", function(data) {
+                   console.log("GM RECV DATA, DO NOTHING");
+                });
+
+                res.on("error", function(err) {
+                    console.log("INITIAL GROUP MESSAGE SEND REQ ERROR:", err);
+                });
             });
 
         });
@@ -170,4 +182,20 @@ function channelMsg(channelID, message) {
     };
 
     https.get(msgReqOptions); //no need for a callback, we don't really care about whether the message got sent correctly or not
+}
+
+function closeConversation(convID) {
+    //Setup request to the slack API
+
+    const reqData = qs.stringify({
+        token: botToken,
+        channel: convID
+    });
+
+    const options = {
+        hostname: "slack.com",
+        path: "/api/conversations.close?"+reqData
+    };
+
+    https.get(options); //we don't really care if the conversation was closed properly or not, just do it
 }

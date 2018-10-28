@@ -155,7 +155,7 @@ app.post("/cmd/accuse", function (req, res) {
 	//Need to extract username from body and resolve to actual user ID
     //remove the @ to get the username, then we can resolve
 
-    let accusedName = req.body.text.slice(1,req.body.text.length);;
+    let accusedName = req.body.text.slice(1,req.body.text.length);
     console.log("ACCUSED NAME IS:", accusedName);
     //Setup request to users.list endpoint so we can return all the users and associate the name to an ID
     const reqData = qs.stringify({
@@ -184,7 +184,53 @@ app.post("/cmd/accuse", function (req, res) {
             for(let i=0; i<parsedData.members.length; i++) {
                 //console.log("checking", parsedData.members[i]);
                 if(parsedData.members[i].name === accusedName) {
-                    Game.registerAccusation(parsedData.members[i].id, req.body.user_id);
+                    //todo to propagate errors back to slack, registerAccusation needs to have a callback with an error
+                    //if error exists, we make a request to the responseUrl from the req.body to send them back an error
+                    Game.registerAccusation(parsedData.members[i].id, req.body.user_id, function(err) {
+                        //If we get called at all, we did get called with an error, so we need to propagate that back to slack
+
+                        //Construct request to slack api response url
+                        let reqBody = JSON.stringify({
+                            response_type: "ephemeral",
+                            text: err
+                        });
+
+                        //https://hooks.slack.com/commands/TDR5818TG/466397563253/t3ypCQb1naw4XiyQX9RVEp9R'
+
+                        let properPath = req.body.response_url.split(".com")[1];
+
+                        const options = {
+                            headers: {
+                                "Content-Type": "application/json",
+                                "Content-Length": Buffer.byteLength(reqBody)
+                            },
+                            hostname: "hooks.slack.com",
+                            path: properPath,
+                            method: "POST"
+                        };
+
+                        console.log("ABOUT TO MAKE REQUEST TO:",options.hostname + options.path);
+                        let postReq = https.request(options, function(res) {
+                            res.on("error", function(err) {
+                                console.log("RESPONSE URL ON ERROR!", err);
+                            });
+
+                            res.on("data", function(data) {
+                                console.log("RESPONSE URL ON DATA!");
+                            });
+
+                            res.on("end", function() {
+                                console.log("RESPONSE URL ON END!!");
+                            })
+                        }); //We don't need a callback, don't care if it goes through or not.
+
+                        postReq.write(reqBody);
+                        postReq.end();
+
+
+                    });
+
+
                     break;
                 }
             }

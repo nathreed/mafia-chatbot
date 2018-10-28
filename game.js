@@ -228,37 +228,40 @@ function gameCleanup() {
 }
 
 function aliveCount() {
-    let aliveCount = 0;
+    let count = 0;
     for(let i=0; i<Object.keys(gameState.players).length; i++) {
         let key = Object.keys(gameState.players)[i];
 
         if(gameState.players[key].alive === true) {
-            console.log("Player", gameState.players[key].userID, "is alive");
-            aliveCount++;
+            console.log("Player", key, "is alive");
+            count++;
         } else {
-            console.log("Player", gameState.players[key].userID, "is NOT alive");
+            console.log("Player", key, "is NOT alive");
         }
     }
-    return aliveCount;
+    return count;
 }
 
 //This function registers an accusation on the given user. Also notifies the chat that they have been accused and who did it
 //Accusation counts as a second if the user has already been accused
-function registerAccusation(userID, accuserID) {
+function registerAccusation(userID, accuserID, errCB) {
     console.log("REGISTER ACCUSATION:", userID, accuserID);
     // if voting is ongoing, accusations cannot be made while voting
     if(votingTimeout) {
         console.log("**DIS ACCUSATION VOTING ONGOING");
+        errCB("You cannot accuse while voting is ongoing!");
         return;
     }
     //Cannot accuse a dead user
     if(gameState.players[userID].alive === false) {
         console.log("**DIS ACCUSATION DEAD PLAYER");
+        errCB("That player is already dead, you cannot accuse them!");
         return;
     }
     //And dead people cannot accuse
     if(gameState.players[accuserID].alive === false) {
         console.log("**DIS ACCUSATION DEAD ACCUSER");
+        errCB("You are dead...you can't accuse people!");
         return;
     }
 
@@ -279,6 +282,7 @@ function registerAccusation(userID, accuserID) {
             votingReadyResolve(userID);
         } else {
             console.log("CANNOT SECOND OWN ACCUSATION!");
+            errCB("You cannot second your own accusation!");
         }
 
     } else {
@@ -347,9 +351,9 @@ function villagerVoteCallback(eventData) {
     console.log("THERE ARE THIS MANY PLAYERS:", Object.keys(gameState.players).length);
     //Determine the number of players that are alive
     //TODO General fix of consensus code
-    let aliveCount = aliveCount();
-    console.log("THIS MANY PLAYERS ARE ALIVE:", aliveCount);
-    if(Object.keys(gameState.playerVotesThisTurn).length === aliveCount) {
+    let alivePlayersCount = aliveCount();
+    console.log("THIS MANY PLAYERS ARE ALIVE:", alivePlayersCount);
+    if(Object.keys(gameState.playerVotesThisTurn).length === alivePlayersCount) {
         //All players have submitted some kind of vote, check if they are all yes
         let allYes = true;
         for(let i=0; i<Object.keys(gameState.playerVotesThisTurn).length; i++) {

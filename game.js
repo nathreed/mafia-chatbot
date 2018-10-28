@@ -108,21 +108,26 @@ function debugAssignRoles(userArray) {
 
 let votingResolvedPromise;
 async function gameFlow() {
-    //BAD CANNOT DO!!
+    Messaging.channelMsg(undefined, "The game has started!");
     while(1) {
          console.log("NEW DAY ITERATION!!!!");
          let results = await nighttime().then(function() {
              if(checkGameOver()) {
                  //game did end
+                 console.log("CHECK GAME OVER INDICATED THAT GAME SHOULD END 1");
                 return Promise.reject();
              } else {
                  //game did not end
                  return Promise.resolve();
              }
+         }, function() {
+             console.log("FAILURE CALLBACK ON NIGHTTIME!!");
+             return Promise.reject();n
          }).then(startVillagerVoting, function() {
              //failure callback for previous
              //means the game actually did end and we should NOT be having villager voting
              //game exit
+             console.log("REJECT PROMISE CHAIN?????");
              return Promise.reject();
          }).then(function() {
              //villager vote end successfully
@@ -353,7 +358,10 @@ function stopVillagerVoting(resolve) {
 // Making a group with all of the Mafia in them
 function startMafiaGroup() {
     // Get all Mafia members
+
+
     let mafiaMembers = getUsersFromRole('mafia');
+    console.log("IDENTIFIED ALL MAFIA MEMBERS:", mafiaMembers);
 
     // Make a group for them
     console.log("Making a mafia groupchat with: " + mafiaMembers);
@@ -597,7 +605,8 @@ function mafiaKillsPerson(userID){
 function getUsersFromRole(role) {
     let matchingUserIDs = [];
     for(let userID in gameState.players){
-        if(gameState.players[userID] === role){
+        //console.log("CHECKING USERID", userID, "role:", gameState.players[userID].role)
+        if(gameState.players[userID].role === role){
             matchingUserIDs.push(userID);
         }
     }

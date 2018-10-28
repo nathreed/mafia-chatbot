@@ -120,7 +120,7 @@ function groupMessage(userArr, message, cb) {
 
         res.on("end", function() {
             //We have all the data, grab the conversation ID and send the message
-
+            console.log(fullData);
             let convID = JSON.parse(fullData).channel.id;
             //Setup call to the slack API to send the message
             const msgReqData = qs.stringify({

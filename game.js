@@ -112,29 +112,40 @@ function debugAssignRoles(userArray) {
 }
 
 
-let votingReadyResolve;
+let votingReadyResolve = function(){console.log("***!*!*!*!*!*!*VRResolve UNSET!!")};
 async function gameFlow() {
     Messaging.channelMsg(undefined, "The game has started!");
     while(1) {
          console.log("NEW DAY ITERATION!!!!");
-         let results = await nighttime().then(function() {
+         let results = await nighttime().then(
+             //SUCCESS ON NIGHTTIME!
+             function() {
              if(checkGameOver()) {
                  //game did end
                  console.log("CHECK GAME OVER INDICATED THAT GAME SHOULD END 1");
                 return Promise.reject();
              } else {
                  //game did not end
+                 console.log("RESOLVING GAME OVER CHECK PROMISE, GAME CONT");
                  return Promise.resolve();
              }
-         }, function() {
+         },
+             //FAILURE ON NIGHTTIME!
+             function() {
              console.log("FAILURE CALLBACK ON NIGHTTIME!!");
              return Promise.reject();
-         }).then(function() {
+         }).then(
+             //SUCCESS ON CHECK GAME OVER
+             function() {
              return new Promise(function(resolve, reject) {
+                 console.log("SET VOTING READY RESOLVE!!!!!");
                  votingReadyResolve = resolve;
              });
-         }, function() {
+         },
+             //FAIL ON CHECK GAME OVER
+             function() {
              //FAIL CASCADED FROM ^^^
+             console.log("SOME KIND OF FAIL CASCADED FROM SOMEWHERE!");
              return Promise.reject();
          }).then(startVillagerVoting, function() {
              //failure callback for previous
@@ -152,9 +163,6 @@ async function gameFlow() {
                  //game is NOT over
                  //do nothing
                  console.log("GAME CONTINUING");
-                 votingReadyPromise = new Promise(function (resolve, reject) {
-
-                 });
                  return true;
              }
          }, function() {
@@ -172,24 +180,34 @@ async function gameFlow() {
 function checkGameOver() {
     //We need to figure out if the game has been won
     //Check if the mafia are at >=50% or at 0%
-    let fakeMafiaUsers = getUsersFromRole("mafia");
-    let mafiaUsers = [];
-    for(let user in fakeMafiaUsers){
+    let allMafiaUsers = getUsersFromRole("mafia");
+    let aliveMafiaUsers = [];
+
+    /*for(let user in fakeMafiaUsers){
         if(gameState.players[user].alive){
             mafiaUsers.push(user);
         }
+    }*/
+    console.log("ALL MAFIA USERS: ", allMafiaUsers);
+    for(let i=0; i<allMafiaUsers.length; i++) {
+        if(gameState.players[allMafiaUsers[i]].alive) {
+            aliveMafiaUsers.push(allMafiaUsers[i]);
+        }
     }
+    console.log("ALIVE MAFIA USERS:", aliveMafiaUsers);
+
+
     let aliveUsers = aliveCount();
 
-    if((mafiaUsers.length / aliveUsers) >= 0.5) {
+    if((aliveMafiaUsers.length / aliveUsers) >= 0.5) {
         console.log("CHECK GAME OVER: GAME SHOULD END MAFIA 50%");
-        console.log("MAFIA USERS:", mafiaUsers);
+        console.log("MAFIA USERS:", aliveMafiaUsers);
         console.log("ALIVE USERS:", aliveUsers);
         //Mafia win
         Messaging.channelMsg(undefined, "The game has ended and the Mafia won! Better luck next time...");
         gameCleanup();
         return true;
-    } else if(mafiaUsers.length === 0) {
+    } else if(aliveMafiaUsers.length === 0) {
         console.log("CHECK GAME OVER: GAME SHOULD END MAFIA 0%");
         //Villagers win
         Messaging.channelMsg(undefined, "The game has ended. The villagers were triumphant and killed all the Mafia!");
@@ -228,9 +246,6 @@ function aliveCount() {
 
 //This function registers an accusation on the given user. Also notifies the chat that they have been accused and who did it
 //Accusation counts as a second if the user has already been accused
-let votingReadyPromise = new Promise(function (resolve, reject) {
-
-});
 function registerAccusation(userID, accuserID) {
     console.log("REGISTER ACCUSATION:", userID, accuserID);
     // if voting is ongoing, accusations cannot be made while voting

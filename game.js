@@ -172,7 +172,13 @@ async function gameFlow() {
 function checkGameOver() {
     //We need to figure out if the game has been won
     //Check if the mafia are at >=50% or at 0%
-    let mafiaUsers = getUsersFromRole("mafia");
+    let fakeMafiaUsers = getUsersFromRole("mafia");
+    let mafiaUsers = [];
+    for(let user in fakeMafiaUsers){
+        if(gameState.players[user].alive){
+            mafiaUsers.push(user);
+        }
+    }
     let aliveUsers = aliveCount();
 
     if((mafiaUsers.length / aliveUsers) >= 0.5) {
@@ -563,7 +569,7 @@ function mafiaVote(resolve) {
 }
 
 function mafiaVoteCallback(eventData) {
-    console.log("MAFIA CALLBACK.");
+    console.log("Mafia voting callback.");
     // If the user @ mentions a player (and only that player)
     let userID = parseAtMention(eventData.text);
     if(userID !== undefined){
@@ -658,11 +664,10 @@ function lynchPerson(userID){
 // When the mafia kills someone
 function mafiaKillsPerson(userID){
     console.log("Mafia is killing " + userID);
-    let name = "<@" + userID + ">";
     gameState.players[userID].alive = false;
 
     // Alert the channel of their death, don't reveal alliance
-    Messaging.channelMsg(undefined, "During the night the mafia killed " + name + ".");
+    Messaging.channelMsg(undefined, "During the night the mafia killed <@" + userID + ">.");
 }
 
 // Takes in a roll and returns userID for those with that roll, even if dead

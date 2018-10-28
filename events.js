@@ -64,7 +64,7 @@ function deregisterCallback(uuid) {
 function executeCallbacks(eventData) {
     //Go over all the callbacks in the registry and determine if they should be called
     //console.log("CALLBACKS REGISTRATION ARRAY:", JSON.stringify(eventsCallbackRegistry, null, 4));
-    Object.keys(eventsCallbackRegistry).forEach(function (key) {
+    for(let key in eventsCallbackRegistry) {
         let regCriteria = eventsCallbackRegistry[key].criteria;
 
         let allMatch = true;
@@ -93,5 +93,5 @@ function executeCallbacks(eventData) {
             //They can have the entire event data and do what they want with it
             eventsCallbackRegistry[key].cb(eventData);
         }
-    })
+    }
 }

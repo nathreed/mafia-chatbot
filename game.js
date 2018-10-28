@@ -7,7 +7,6 @@ const Events = require("./events");
 
 module.exports = {
     debugAssignRoles: debugAssignRoles,
-    doctorVote: doctorVote,
     registerAccusation: registerAccusation
 };
 
@@ -169,8 +168,7 @@ function villagerVoteCallback(eventData) {
     if(Object.keys(gameState.playerVotesThisTurn).length === Object.keys(gameState.players).length) {
         //All players have submitted some kind of vote, check if they are all yes
         let allYes = true;
-        for(let i=0; i<Object.keys(gameState.playerVotesThisTurn).length; i++) {
-            let key = Object.keys(gameState.playerVotesThisTurn)[i];
+        for(let key in gameState.playerVotesThisTurn) {
             if(gameState.playerVotesThisTurn[key] === "no" || gameState.playerVotesThisTurn[key] === undefined) {
                 allYes = false;
                 console.log("EVERYONE HAS VOTED BUT SOMEONE VOTED NO!");

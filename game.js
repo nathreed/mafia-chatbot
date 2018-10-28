@@ -328,6 +328,9 @@ function villagerVoteCallback(eventData) {
         //dead people can't vote
         if(gameState.players[eventData.user].alive) {
             gameState.playerVotesThisTurn[eventData.user] = "yes";
+        } else {
+            // TODO Ephemeral
+            Messaging.dmUser(eventData.user, "You are dead and cannot vote, sorry.");
         }
 
 
@@ -349,7 +352,8 @@ function villagerVoteCallback(eventData) {
     if(Object.keys(gameState.playerVotesThisTurn).length === aliveCount) {
         //All players have submitted some kind of vote, check if they are all yes
         let allYes = true;
-        for(let key in gameState.playerVotesThisTurn) {
+        for(let i=0; i<Object.keys(gameState.playerVotesThisTurn).length; i++) {
+            let key = Object.keys(gameState.playerVotesThisTurn)[i];
             if(gameState.playerVotesThisTurn[key] === "no" || gameState.playerVotesThisTurn[key] === undefined) {
                 allYes = false;
                 console.log("EVERYONE HAS VOTED BUT SOMEONE VOTED NO!");

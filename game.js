@@ -127,7 +127,7 @@ async function gameFlow() {
              }
          }, function() {
              console.log("FAILURE CALLBACK ON NIGHTTIME!!");
-             return Promise.reject();n
+             return Promise.reject();
          }).then(startVillagerVoting, function() {
              //failure callback for previous
              //means the game actually did end and we should NOT be having villager voting
@@ -412,9 +412,9 @@ function setRole(userID, role) {
 function nighttime(){
     // Make a "set" of vote promises, so that once everyone who does stuff in the night is done, can move on, resolve on each one
     let votingPromises = [];
-    votingPromises.push(new Promise((resolve) => doctorVote(resolve)));
-    votingPromises.push(new Promise((resolve) => mafiaVote(resolve)));
-    votingPromises.push(new Promise((resolve) => detectiveVote(resolve)));
+    votingPromises.push(new Promise((resolve) => doctorVote(resolve)).then(()=>{console.log("DOCTOR Resolved."); return Promise.resolve();}));
+    votingPromises.push(new Promise((resolve) => mafiaVote(resolve)).then(()=>{console.log("MAFIA Resolved."); return Promise.resolve();}));
+    votingPromises.push(new Promise((resolve) => detectiveVote(resolve)).then(()=>{console.log("DETECTIVE Resolved."); return Promise.resolve();}));
 
     return Promise.all(votingPromises).then(function() {
         console.log("Made it through all of the promises for doctors, etc.");
@@ -460,9 +460,8 @@ function doctorPromptCallback(reply) {
             Messaging.dmUser(reply.user, "Please @mention your choice, you can only pick one living person and not the same person two turns in a row.", doctorPromptCallback);
         } else {
             Messaging.dmUser(reply.user, "You saved <@" + mentions[1] + ">.");
+            doctorResolve();
         }
-    } else {
-        doctorResolve();
     }
 }
 
@@ -526,11 +525,13 @@ function mafiaVote(resolve) {
     Messaging.channelMsg(gameState.mafiaChannelID, "<!channel> please vote on who to kill. @mention people to nominate them, once everyone has reached a consensus or the timer has run out the majority nominee will be killed.");
     mafiaVoteTimeout = setTimeout(function() {mafiaVoteTimerCallback()}, 45000);
 
+    // Trying to make callback
     mafiaCallbackUUID = Events.registerCallbackChannelReply(gameState.mafiaChannelID, mafiaVoteCallback);
     mafiaResolve = resolve;
 }
 
 function mafiaVoteCallback(eventData) {
+    console.log("MAFIA CALLBACK.");
     // If the user @ mentions a player (and only that player)
     let userID = parseAtMention(eventData.text);
     if(userID !== undefined){
@@ -541,14 +542,15 @@ function mafiaVoteCallback(eventData) {
         let allSame = true;
         for(let userIDiterating in gameState.players){
             // If mafia and alive and not voting for the same person
-            if(gameState.players[userIDiterating].role === 'mafia' && gameState.players[userIDiterating].alive && !gameState.mafiaVotesThisTurn[userIDiterating] === userID){
+            if(gameState.players[userIDiterating].role === 'mafia' && gameState.players[userIDiterating].alive && gameState.mafiaVotesThisTurn[userIDiterating] !== userID){
                 allSame = false;
                 break;
             }
         }
-
         // If consensus reached, just kill the person and break the timeouts or whatever
+
         if(allSame){
+            console.log("Consensus Reached");
             gameState.mafiaAttemptThisTurn = userID;
 
             // Clean up the mess
@@ -597,6 +599,7 @@ function mafiaVoteTimerCallback() {
 function wipeMafiaVoteTemporaries() {
     // Clear and wipe down everything
     gameState.mafiaVotesThisTurn = {};
+    clearTimeout(mafiaVoteTimeout);
     mafiaVoteTimeout = undefined;
     Events.deregisterCallback(mafiaCallbackUUID);
     mafiaCallbackUUID = "";

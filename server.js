@@ -22,6 +22,7 @@ app.post("/events", function(req, res) {
         res.send(req.body.challenge);
     } else {
         //Just regular event, dispatch
+        res.send(null);
         events.executeCallbacks(req.body.event);
     }
 

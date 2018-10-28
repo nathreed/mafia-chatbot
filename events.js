@@ -58,11 +58,12 @@ function registerCallbackChannelReply(channelID, cb) {
 
 function deregisterCallback(uuid) {
     //Simply set the entry to undefined so it acts like it was never set
-    eventsCallbackRegistry[uuid] = undefined;
+    delete eventsCallbackRegistry[uuid];
 }
 
 function executeCallbacks(eventData) {
     //Go over all the callbacks in the registry and determine if they should be called
+    //console.log("CALLBACKS REGISTRATION ARRAY:", JSON.stringify(eventsCallbackRegistry, null, 4));
     Object.keys(eventsCallbackRegistry).forEach(function (key) {
         let regCriteria = eventsCallbackRegistry[key].criteria;
 

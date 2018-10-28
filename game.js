@@ -139,7 +139,7 @@ let votingUserID;
 function startVillagerVoting(userID) {
     Messaging.channelMsg(undefined, "The voting process on <@"+ userID+ "> has started! Write 'yes' to vote to kill and write 'no' to vote against killing.");
     //Set a timeout to stop the voting, 45 second voting period for now
-    votingTimeout = setTimeout(function() {stopVillagerVoting(userID)}, 45000);
+    votingTimeout = setTimeout(function() {stopVillagerVoting()}, 45000);
     votingUserID = userID;
     //Register callback for villager votes
     callbackUUID = Events.registerCallbackChannelReply(Messaging.getDefaultChannelID(), villagerVoteCallback);
@@ -151,31 +151,35 @@ function startVillagerVoting(userID) {
 function villagerVoteCallback(eventData) {
     if(eventData.text === "yes") {
         //Yes vote
-        gameState.playerVotesThisTurn[eventData.user_id] = true;
+        console.log("RECEIVED YES VOTE FROM USER:", eventData.user);
+        gameState.playerVotesThisTurn[eventData.user] = "yes";
 
     } else if(eventData.text === "no") {
         //No vote
-        gameState.playerVotesThisTurn[eventData.user_id] = false;
+        console.log("RECEIVED NO VOTE FROM USER:", eventData.user);
+        gameState.playerVotesThisTurn[eventData.user] = "no";
     }
     //Now that vote has been recorded, check if everyone has voted
+    console.log("THERE ARE THIS MANY PLAYERS:", Object.keys(gameState.players).length);
     if(Object.keys(gameState.playerVotesThisTurn).length === Object.keys(gameState.players).length) {
         //All players have submitted some kind of vote, check if they are all yes
         let allYes = true;
         for(let i=0; i<Object.keys(gameState.playerVotesThisTurn).length; i++) {
             let key = Object.keys(gameState.playerVotesThisTurn)[i];
-            if(gameState.playerVotesThisTurn[key] === false) {
+            if(gameState.playerVotesThisTurn[key] === "no" || gameState.playerVotesThisTurn[key] === undefined) {
                 allYes = false;
+                console.log("EVERYONE HAS VOTED BUT SOMEONE VOTED NO!");
                 break;
             }
         }
 
         if(allYes) {
+            console.log("EVERYONE HAS VOTED AND THEY ALL VOTED YES!!!");
             //Everyone has voted AND they all voted yes
             //End the voting early
             //First kill the timeout
             clearTimeout(votingTimeout);
             //Next cancel this callback so we dont get more updates
-            Events.deregisterCallback(callbackUUID);
             //Next call the stopVillagerVoting function which will compute the results of the voting
             stopVillagerVoting();
         }
@@ -183,6 +187,8 @@ function villagerVoteCallback(eventData) {
 }
 
 function stopVillagerVoting() {
+    Events.deregisterCallback(callbackUUID);
+    callbackUUID = "";
     clearTimeout(votingTimeout); //clear the timeout if it didn't get cleared already
     Messaging.channelMsg(undefined, "The voting process on <@"+ votingUserID+ "> has stopped.");
     //COMPUTE RESULTS AND THEN CLEAR VOTES FOR THIS TURN!
@@ -193,14 +199,16 @@ function stopVillagerVoting() {
 
     for(let i=0; i<Object.keys(gameState.playerVotesThisTurn).length; i++) {
         let key = Object.keys(gameState.playerVotesThisTurn)[i];
-        if(gameState.playerVotesThisTurn[key] === false) {
+        if(gameState.playerVotesThisTurn[key] === "no") {
             noCount++;
         } else {
             yesCount++;
         }
     }
 
-
+    /*console.log("VOTES DICT:", JSON.stringify(gameState.playerVotesThisTurn, null, 4));
+    console.log("TALLYING VOTES, YES COUNT IS:", yesCount);
+    console.log("NO COUNT IS:", noCount);*/
     if(yesCount > noCount) {
         //Voted to kill
         let deadID = votingUserID;
@@ -219,7 +227,6 @@ function stopVillagerVoting() {
     }
     //Cleanup before we leave
     votingUserID = "";
-    callbackUUID = "";
     votingTimeout = undefined;
     gameState.playerVotesThisTurn = {};
 

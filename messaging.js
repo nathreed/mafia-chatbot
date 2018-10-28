@@ -67,7 +67,7 @@ function dmUser(userID, message, cb) {
 
                 //debug only
                 res.on("data", function(data) {
-                    console.log("recv data:", data);
+                    //console.log("recv data:", data);
                 });
 
                 res.on("end", function() {

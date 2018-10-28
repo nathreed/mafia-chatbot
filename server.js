@@ -84,7 +84,6 @@ app.post("/cmd/startgame", function (req,res) {
                 console.log("the following users are active:", activeUsers);
                 //Assign roles for the game from the list of active users
                 Game.debugAssignRoles(activeUsers);
-                Game.startMafiaGroup();
             });
         });
     });

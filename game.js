@@ -99,6 +99,8 @@ function debugAssignRoles(userArray) {
         console.log(assigningUser + " is a Villager.");
     }
 
+    startMafiaGroup();
+
     //start the unholy control flow loop
     gameFlow();
 
@@ -351,14 +353,10 @@ function stopVillagerVoting(resolve) {
 // Making a group with all of the Mafia in them
 function startMafiaGroup() {
     // Get all Mafia members
-    let mafiaMembers = [];
-    for(let key in gameState.players) {
-        if (gameState.players[key] === 'mafia'){
-            mafiaMembers.push(gameState.players[key])
-        }
-    }
+    let mafiaMembers = getUsersFromRole('mafia');
 
     // Make a group for them
+    console.log("Making a mafia groupchat with: " + mafiaMembers);
     Messaging.groupMessage(mafiaMembers, "Hello Mafia, get to know each other. The others are not aware of this channel, you will need to come back here to vote on who to kill.", function(reply, convID){
         gameState.mafiaChannelID = convID;
     });
@@ -507,7 +505,7 @@ function mafiaVoteCallback(eventData) {
         let allSame = true;
         for(let userIDiterating in gameState.players){
             // If mafia and alive and not voting for the same person
-            if(gameState[userIDiterating].role === 'mafia' && gameState[userIDiterating].alive && !gameState.mafiaVotesThisTurn[userIDiterating] === userID){
+            if(gameState.players[userIDiterating].role === 'mafia' && gameState.players[userIDiterating].alive && !gameState.mafiaVotesThisTurn[userIDiterating] === userID){
                 allSame = false;
                 break;
             }
@@ -527,6 +525,9 @@ function mafiaVoteTimerCallback() {
     // No actual easy way to check if no votes
     if(Object.keys(gameState.mafiaVotesThisTurn).length === 0){
         Messaging.channelMsg(gameState.mafiaChannelID, "Times up and nobody to kill, guess you took this round off.");
+
+        // There isn't a nominee, so reflect that
+        gameState.mafiaAttemptThisTurn = "";
     } else {
         // Get the user most voted for, kill them
         let mafiaVoteValues = Object.values(gameState.mafiaVotesThisTurn);

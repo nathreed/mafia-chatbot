@@ -98,7 +98,7 @@ function groupMessage(userArr, message, cb) {
         userList += ","+userArr[i];
     }
     //Take the first comma off the userList
-    userList.splice(0,1);
+    userList.slice(0,1);
 
 
     //Now setup a call to slack api for creating conversation with these users

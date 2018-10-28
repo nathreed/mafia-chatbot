@@ -72,11 +72,11 @@ function dmUser(userID, message, cb) {
 
                 res.on("end", function() {
                     //The request is finished, we can register a callback for the user reply so that we can send it back to our callback
-                    let cbUUID = events.registerCallbackUserChannelReply(userID, convID, function(reply) {
+                    let cbUUID = events.registerCallbackUserChannelReply(userID, convID, function (reply) {
                         //Deregister the callback so that we only get the first reply, not any others
                         events.deregisterCallback(cbUUID);
-                        cb(reply);
-                    })
+                        if(cb){cb(reply);}
+                    });
                 })
             });
         });

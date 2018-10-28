@@ -7,6 +7,7 @@ const Events = require("./events");
 
 module.exports = {
     debugAssignRoles: debugAssignRoles,
+    assignRoles: assignRoles,
     registerAccusation: registerAccusation,
     startMafiaGroup: startMafiaGroup
 };
@@ -395,13 +396,14 @@ function setRole(userID, role) {
 
 // The nighttime activities function, with a callback
 function nighttime(){
-    // Make a "set" of vote promises, so that once everyone who does stuff in the night is done, can move on
+    // Make a "set" of vote promises, so that once everyone who does stuff in the night is done, can move on, resolve on each one
     let votingPromises = [];
     votingPromises.push(new Promise((resolve) => doctorVote(resolve)));
     votingPromises.push(new Promise((resolve) => mafiaVote(resolve)));
     votingPromises.push(new Promise((resolve) => detectiveVote(resolve)));
 
-    return Promise.all(votingPromises).then(function(resolve) {
+    return Promise.all(votingPromises).then(function() {
+        console.log("Made it through all of the promises for doctors, etc.");
         if(gameState.mafiaAttemptThisTurn === gameState.savedThisTurn){
             // Kill person
             mafiaKillsPerson(gameState.mafiaAttemptThisTurn);
@@ -413,13 +415,15 @@ function nighttime(){
             // No attempted killing, ie. Mafia didn't nominate anyone
             Messaging.channelMsg(undefined, "Nothing happened during the night, the mafia must have taken a nap.");
         }
-        resolve();
+        return Promise.resolve();
     });
 }
 
 
 // Called to get the doctor's vote
+let doctorResolve;
 function doctorVote(resolve) {
+    doctorResolve = resolve;
     let userID = getUsersFromRole('doctor')[0];
 
     // Only get the vote if alive
@@ -429,19 +433,23 @@ function doctorVote(resolve) {
     } else {
         console.log("Doctor is dead, resolving anyways.");
         gameState.savedThisTurn = undefined;
+        resolve();
     }
-    resolve();
 }
 
 // Helper function for the doctor prompting callback
 function doctorPromptCallback(reply) {
-    // If they @mentioned someone
+     // If they @mentioned someone
     let mentions = reply.text.match(/<@(.*?)>/); // Match the first @mention
-    if(mentions !== null) {
-        if(!doctorSaveAttempt(mentions[1])){ // If unsuccessful in first save attempt
+    if (mentions !== null) {
+        if (!doctorSaveAttempt(mentions[1])) { // If unsuccessful in first save attempt
             console.log("Invalid input for doctor save, prompting again.");
             Messaging.dmUser(reply.user, "Please @mention your choice, you can only pick one living person and not the same person two turns in a row.", doctorPromptCallback);
+        } else {
+            Messaging.dmUser(reply.user, "You saved <@" + mentions[1] + ">.");
         }
+    } else {
+        doctorResolve();
     }
 }
 
@@ -460,7 +468,9 @@ function doctorSaveAttempt(userID) {
 }
 
 // Detective "Voting" for the person to investigate. Still need safety checks because could be non player
+let detectiveResolve;
 function detectiveVote(resolve) {
+    detectiveResolve = resolve;
     let userID = getUsersFromRole('detective')[0];
 
     // Only get the vote if alive
@@ -470,18 +480,19 @@ function detectiveVote(resolve) {
     } else {
         console.log("Detective is dead, resolving anyways.");
         gameState.savedThisTurn = undefined;
+        resolve();
     }
-    resolve();
 }
 
 // Callback for detective prompting
 function detectivePromptCallback(reply) {
     // If they @mentioned someone
     let mentions = reply.text.match(/<@(.*?)>/); // Match the first @mention
-    if(mentions !== null && gameState.players[mentions[1]] !== undefined && gameState.players[mentions[1]].alive) {
+    if (mentions !== null && gameState.players[mentions[1]] !== undefined && gameState.players[mentions[1]].alive) {
         console.log("Detective investigated " + mentions[1] + " who is a " + gameState.players[mentions[1]].role);
         Messaging.dmUser(reply.user, "<@" + mentions[1] + "> is a " + gameState.players[mentions[1]].role + ".");
-    }else{
+        detectiveResolve();
+    } else {
         console.log("Invalid input for detective investigate, prompting again.");
         Messaging.dmUser(reply.user, "Please @mention your choice, you can only pick one living person and not the same person two turns in a row.", detectivePromptCallback);
     }

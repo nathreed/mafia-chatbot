@@ -93,9 +93,14 @@ function debugAssignRoles(userArray) {
 function registerAccusation(userID, accuserID) {
     console.log("REGISTER ACCUSATION:", userID, accuserID);
     // if voting is ongoing, accusations cannot be made while voting
-        if(votingTimeout) {
-            return;
-        }
+    if(votingTimeout) {
+        return;
+    }
+    //Cannot accuse a dead user
+    if(gameState.players[userID].alive === false) {
+        return;
+    }
+
     //condition will be true if anything exists in the accusation array, ie if they have been accused this turn
     //if not accused, condition will be false
     if(alreadyAccused(userID)) {
@@ -229,6 +234,8 @@ function stopVillagerVoting() {
     votingUserID = "";
     votingTimeout = undefined;
     gameState.playerVotesThisTurn = {};
+    //So that prior accusations reset properly.
+    gameState.accusedThisTurn = [];
 
 
 }

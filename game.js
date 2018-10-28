@@ -111,7 +111,8 @@ function debugAssignRoles(userArray) {
 
 }
 
-let votingResolvedPromise;
+
+let votingReadyResolve;
 async function gameFlow() {
     Messaging.channelMsg(undefined, "The game has started!");
     while(1) {
@@ -127,6 +128,13 @@ async function gameFlow() {
              }
          }, function() {
              console.log("FAILURE CALLBACK ON NIGHTTIME!!");
+             return Promise.reject();
+         }).then(function() {
+             return new Promise(function(resolve, reject) {
+                 votingReadyResolve = resolve;
+             });
+         }, function() {
+             //FAIL CASCADED FROM ^^^
              return Promise.reject();
          }).then(startVillagerVoting, function() {
              //failure callback for previous
@@ -144,6 +152,9 @@ async function gameFlow() {
                  //game is NOT over
                  //do nothing
                  console.log("GAME CONTINUING");
+                 votingReadyPromise = new Promise(function (resolve, reject) {
+
+                 });
                  return true;
              }
          }, function() {
@@ -211,18 +222,24 @@ function aliveCount() {
 
 //This function registers an accusation on the given user. Also notifies the chat that they have been accused and who did it
 //Accusation counts as a second if the user has already been accused
+let votingReadyPromise = new Promise(function (resolve, reject) {
+
+});
 function registerAccusation(userID, accuserID) {
     console.log("REGISTER ACCUSATION:", userID, accuserID);
     // if voting is ongoing, accusations cannot be made while voting
     if(votingTimeout) {
+        console.log("**DIS ACCUSATION VOTING ONGOING");
         return;
     }
     //Cannot accuse a dead user
     if(gameState.players[userID].alive === false) {
+        console.log("**DIS ACCUSATION DEAD PLAYER");
         return;
     }
     //And dead people cannot accuse
     if(gameState.players[accuserID].alive === false) {
+        console.log("**DIS ACCUSATION DEAD ACCUSER");
         return;
     }
 
@@ -230,7 +247,7 @@ function registerAccusation(userID, accuserID) {
     //if not accused, condition will be false
     if(alreadyAccused(userID)) {
         //second
-
+        console.log("SECOND!!");
         //Check that the accuser ID isn't the same as the original accuser ID, so that the accuser cannot second their own accusation
         //console.log("already accused value:", alreadyAccused(userID));
         if(alreadyAccused(userID) !== accuserID) {
@@ -238,12 +255,15 @@ function registerAccusation(userID, accuserID) {
             Messaging.channelMsg(undefined, "<@"+accuserID+"> has seconded the accusation on <@"+userID+">!");
             //begin voting process
             console.log("voting process begin!");
-            votingResolvedPromise = startVillagerVoting(userID);
+            //votingResolvedPromise = startVillagerVoting(userID);
+            //votingReadyPromise = Promise.resolve(userID);
+            votingReadyResolve(userID);
         } else {
             console.log("CANNOT SECOND OWN ACCUSATION!");
         }
 
     } else {
+        console.log("REGULAR ACCUSATION!!");
         //Regular accusation
         gameState.accusedThisTurn.push({accuserID: accuserID, userID: userID});
         Messaging.channelMsg(undefined, "<@"+accuserID+"> has accused <@"+userID+">! Second by using /accuse on this person as well!");

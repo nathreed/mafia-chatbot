@@ -108,9 +108,7 @@ function debugAssignRoles(userArray) {
 
     //start the unholy control flow loop
     gameFlow();
-
 }
-
 
 let votingReadyResolve = function(){console.log("***!*!*!*!*!*!*VRResolve UNSET!!")};
 async function gameFlow() {
@@ -345,6 +343,7 @@ function villagerVoteCallback(eventData) {
     //Now that vote has been recorded, check if everyone has voted
     console.log("THERE ARE THIS MANY PLAYERS:", Object.keys(gameState.players).length);
     //Determine the number of players that are alive
+    //TODO General fix of consensus code
     let aliveCount = aliveCount();
     console.log("THIS MANY PLAYERS ARE ALIVE:", aliveCount);
     if(Object.keys(gameState.playerVotesThisTurn).length === aliveCount) {

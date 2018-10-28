@@ -80,10 +80,12 @@ function assignRoles(userArray){
         console.log(assigningUser + " is a Villager.");
     }
 
-    startMafiaGroup();
+    startMafiaGroup().then(function() {
+        //summon the devil
+        gameFlow();
+    });
 
-    //summon the devil
-    gameFlow();
+
 }
 
 function debugAssignRoles(userArray) {
@@ -366,16 +368,21 @@ function stopVillagerVoting(resolve) {
 
 // Making a group with all of the Mafia in them
 function startMafiaGroup() {
-    // Get all Mafia members
-    let mafiaMembers = getUsersFromRole('mafia');
-    console.log("IDENTIFIED ALL MAFIA MEMBERS:", mafiaMembers);
 
-    // Make a group for them
-    console.log("Making a mafia groupchat with: " + mafiaMembers);
-    Messaging.groupMessage(mafiaMembers, "Hello Mafia, get to know each other. The others are not aware of this channel, you will need to come back here to vote on who to kill.", function(reply, convID){
-        console.log("Making mafia group, storing convID:" + convID + ".");
-        gameState.mafiaChannelID = convID;
+    return new Promise(function(resolve, reject) {
+        // Get all Mafia members
+        let mafiaMembers = getUsersFromRole('mafia');
+        console.log("IDENTIFIED ALL MAFIA MEMBERS:", mafiaMembers);
+
+        // Make a group for them
+        console.log("Making a mafia groupchat with: " + mafiaMembers);
+        Messaging.groupMessage(mafiaMembers, "Hello Mafia, get to know each other. The others are not aware of this channel, you will need to come back here to vote on who to kill.", function(reply, convID){
+            console.log("Making mafia group, storing convID:" + convID + ".");
+            gameState.mafiaChannelID = convID;
+            resolve();
+        });
     });
+
 }
 
 function setRole(userID, role) {

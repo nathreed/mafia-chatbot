@@ -333,8 +333,7 @@ function villagerVoteCallback(eventData) {
         if(gameState.players[eventData.user].alive) {
             gameState.playerVotesThisTurn[eventData.user] = "yes";
         } else {
-            // TODO Ephemeral
-            Messaging.dmUser(eventData.user, "You are dead and cannot vote, sorry.");
+            Messaging.ephemeralMsg(undefined, eventData.user, "You are dead and cannot vote, sorry.");
         }
 
 
@@ -349,8 +348,8 @@ function villagerVoteCallback(eventData) {
     }
     //Now that vote has been recorded, check if everyone has voted
     console.log("THERE ARE THIS MANY PLAYERS:", Object.keys(gameState.players).length);
+
     //Determine the number of players that are alive
-    //TODO General fix of consensus code
     let alivePlayersCount = aliveCount();
     console.log("THIS MANY PLAYERS ARE ALIVE:", alivePlayersCount);
     if(Object.keys(gameState.playerVotesThisTurn).length === alivePlayersCount) {
@@ -428,7 +427,6 @@ function stopVillagerVoting(resolve) {
 
 // Making a group with all of the Mafia in them
 function startMafiaGroup() {
-
     return new Promise(function(resolve, reject) {
         // Get all Mafia members
         let mafiaMembers = getUsersFromRole('mafia');
@@ -496,6 +494,7 @@ function nighttime(){
 // Called to get the doctor's vote
 let doctorResolve;
 function doctorVote(resolve) {
+    //TODO Timer handling as well
     doctorResolve = resolve;
     let userID = getUsersFromRole('doctor')[0];
 
@@ -542,6 +541,7 @@ function doctorSaveAttempt(userID) {
 // Detective "Voting" for the person to investigate. Still need safety checks because could be non player
 let detectiveResolve;
 function detectiveVote(resolve) {
+    //TODO Timer handling as well
     detectiveResolve = resolve;
     let userID = getUsersFromRole('detective')[0];
 
@@ -593,7 +593,7 @@ function mafiaVote(resolve) {
 function mafiaVoteCallback(eventData) {
     console.log("Mafia voting callback.");
     // If the user @ mentions a player (and only that player)
-    let userID = parseAtMention(eventData.text);
+    let userID = parseAtMention(eventData.text, true);
     if(userID !== undefined){
         // The mentions[1] userID is a valid username, storing it as this mafioso's vote
         gameState.mafiaVotesThisTurn[eventData.user] = userID;
@@ -607,8 +607,8 @@ function mafiaVoteCallback(eventData) {
                 break;
             }
         }
-        // If consensus reached, just kill the person and break the timeouts or whatever
 
+        // If consensus reached, just kill the person and break the timeouts or whatever
         if(allSame){
             console.log("Mafia consensus reached.");
             Messaging.channelMsg(gameState.mafiaChannelID, "A consensus was reached, <@" + userID + "> will be killed.");
@@ -617,6 +617,8 @@ function mafiaVoteCallback(eventData) {
             // Clean up the mess
             wipeMafiaVoteTemporaries();
         }
+    } else {
+        Messaging.ephemeralMsg(gameState.mafiaChannelID, eventData.user, "That was an invalid nominee.");
     }
 }
 

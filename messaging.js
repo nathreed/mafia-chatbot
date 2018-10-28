@@ -13,6 +13,7 @@ module.exports = {
     groupMessage: groupMessage,
     channelMsg: channelMsg,
     getDefaultChannelID: getDefaultChannelID,
+    ephemeralMsg: ephemeralMsg,
     closeConversation: closeConversation
 };
 

@@ -164,7 +164,7 @@ function checkGameOver() {
     let mafiaUsers = getUsersFromRole("mafia");
     let aliveUsers = aliveCount();
 
-    if(mafiaUsers.length / aliveUsers >= 0.5) {
+    if((mafiaUsers.length / aliveUsers) >= 0.5) {
         //Mafia win
         Messaging.channelMsg(undefined, "The game has ended and the Mafia won! Better luck next time...");
         gameCleanup();

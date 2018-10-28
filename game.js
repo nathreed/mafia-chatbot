@@ -99,6 +99,10 @@ function registerAccusation(userID, accuserID) {
     if(gameState.players[userID].alive === false) {
         return;
     }
+    //And dead people cannot accuse
+    if(gameState.players[accuserID].alive === false) {
+        return;
+    }
 
     //condition will be true if anything exists in the accusation array, ie if they have been accused this turn
     //if not accused, condition will be false
@@ -156,12 +160,20 @@ function villagerVoteCallback(eventData) {
     if(eventData.text === "yes") {
         //Yes vote
         console.log("RECEIVED YES VOTE FROM USER:", eventData.user);
-        gameState.playerVotesThisTurn[eventData.user] = "yes";
+        //dead people can't vote
+        if(gameState.players[eventData.user].alive) {
+            gameState.playerVotesThisTurn[eventData.user] = "yes";
+        }
+
 
     } else if(eventData.text === "no") {
         //No vote
         console.log("RECEIVED NO VOTE FROM USER:", eventData.user);
-        gameState.playerVotesThisTurn[eventData.user] = "no";
+        //dead people can't vote
+        if(gameState.players[eventData.user].alive) {
+            gameState.playerVotesThisTurn[eventData.user] = "no";
+        }
+
     }
     //Now that vote has been recorded, check if everyone has voted
     console.log("THERE ARE THIS MANY PLAYERS:", Object.keys(gameState.players).length);

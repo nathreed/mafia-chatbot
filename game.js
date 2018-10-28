@@ -332,7 +332,15 @@ function doctorSaveAttempt(userID) {
 // Detective "Voting" for the person to investigate. Still need safety checks because could be non player
 function detectiveVote(resolve) {
     let userID = getUsersFromRole('detective')[0];
-    Messaging.dmUser(userID, "Who do you want to investigate tonight?", detectivePromptCallback);
+
+    // Only get the vote if alive
+    if(gameState.players[userID].alive){
+        console.log("Detective alive, prompting for suspect.");
+        Messaging.dmUser(userID, "Who do you want to investigate tonight?", detectivePromptCallback);
+    } else {
+        console.log("Detective is dead, resolving anyways.");
+        gameState.savedThisTurn = undefined;
+    }
     resolve();
 }
 

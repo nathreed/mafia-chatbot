@@ -80,6 +80,8 @@ function assignRoles(userArray){
         console.log(assigningUser + " is a Villager.");
     }
 
+    startMafiaGroup();
+
     //summon the devil
     gameFlow();
 }

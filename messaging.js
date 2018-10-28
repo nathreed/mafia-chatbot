@@ -138,7 +138,7 @@ function groupMessage(userArr, message, cb) {
                 res.on("end", function() {
                     //register callback with the events system here
                     let cbUUID = events.registerCallbackChannelReply(convID, function(reply) {
-                        cb(reply, cbUUID);
+                        cb(reply, convID, cbUUID);
                     });
                 })
             });

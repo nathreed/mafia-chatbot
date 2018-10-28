@@ -65,8 +65,6 @@ app.post("/cmd/startgame", function (req,res) {
 
     //console.log("about to send request to", options.path);
 
-
-
     https.get(options, function(res) {
         let fullData = "";
         res.on("data", function(data) {
@@ -86,12 +84,10 @@ app.post("/cmd/startgame", function (req,res) {
                 console.log("the following users are active:", activeUsers);
                 //Assign roles for the game from the list of active users
                 Game.debugAssignRoles(activeUsers);
+                Game.startMafiaGroup();
             });
         });
     });
-
-
-
 });
 
 //Takes the list of all users we got from slack and calls the callback with a list of only the active ones.

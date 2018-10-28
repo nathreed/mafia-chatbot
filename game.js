@@ -7,7 +7,8 @@ const Events = require("./events");
 
 module.exports = {
     debugAssignRoles: debugAssignRoles,
-    registerAccusation: registerAccusation
+    registerAccusation: registerAccusation,
+    startMafiaGroup: startMafiaGroup
 };
 
 /*
@@ -15,7 +16,7 @@ gameState object is laid out like this:
 - there is a dictionary called players that is keyed with the userid and values are objects that contain role, alive status, etc
 - Other info about the game state as needed
  */
-let gameState = {players: {}, running: false, savedThisTurn: "", mafiaAttemptThisTurn: "", accusedThisTurn: [], playerVotesThisTurn: {}};
+let gameState = {players: {}, running: false, savedThisTurn: "", mafiaAttemptThisTurn: "", accusedThisTurn: [], playerVotesThisTurn: {}, mafiaVotesThisTurn: {}, mafiaChannelID: ""};
 // Give array of userids in array of strings that aren't prettyprint-able
 function assignRoles(userArray){
     // Only run if enough players
@@ -202,7 +203,7 @@ function villagerVoteCallback(eventData) {
             //End the voting early
             //First kill the timeout
             clearTimeout(votingTimeout);
-            //Next cancel this callback so we dont get more updates
+            //Next cancel this callback so we don't get more updates
             //Next call the stopVillagerVoting function which will compute the results of the voting
             stopVillagerVoting();
         }
@@ -237,7 +238,6 @@ function stopVillagerVoting() {
         let deadID = votingUserID;
         //Cleanup before we leave
         votingUserID = "";
-        callbackUUID = "";
         votingTimeout = undefined;
         gameState.playerVotesThisTurn = {};
         lynchPerson(deadID);
@@ -254,8 +254,22 @@ function stopVillagerVoting() {
     gameState.playerVotesThisTurn = {};
     //So that prior accusations reset properly.
     gameState.accusedThisTurn = [];
+}
 
+// Making a group with all of the Mafia in them
+function startMafiaGroup() {
+    // Get all Mafia members
+    let mafiaMembers = [];
+    for(let key in gameState.players) {
+        if (gameState.players[key] === 'mafia'){
+            mafiaMembers.push(gameState.players[key])
+        }
+    }
 
+    // Make a group for them
+    Messaging.groupMessage(mafiaMembers, "Hello Mafia, get to know each other. The others are not aware of this channel, you will need to come back here to vote on who to kill.", function(reply, convID){
+        gameState.mafiaChannelID = convID;
+    });
 }
 
 function setRole(userID, role) {
@@ -285,9 +299,9 @@ function setRole(userID, role) {
 function nighttime(cb){
     // Make a "set" of vote promises, so that once everyone who does stuff in the night is done, can move on
     let votingPromises = [];
-    votingPromises.push(new Promise((resolve, reject) => doctorVote(resolve)));
-    votingPromises.push(new Promise((resolve, reject) => mafiaVote(resolve)));
-    votingPromises.push(new Promise((resolve, reject) => detectiveVote(resolve)));
+    votingPromises.push(new Promise((resolve) => doctorVote(resolve)));
+    votingPromises.push(new Promise((resolve) => mafiaVote(resolve)));
+    votingPromises.push(new Promise((resolve) => detectiveVote(resolve)));
 
     Promise.all(votingPromises).then(function(resolve) {
         if(gameState.mafiaAttemptThisTurn === gameState.savedThisTurn){
@@ -366,15 +380,100 @@ function detectiveVote(resolve) {
 function detectivePromptCallback(reply) {
     // If they @mentioned someone
     let mentions = reply.text.match(/<@(.*?)>/); // Match the first @mention
-    if(mentions !== null) {
-        if(gameState.players[mentions[1]] === undefined){ // If unsuccessful in first investigation attempt
-            console.log("Invalid input for detective investigate, prompting again.");
-            Messaging.dmUser(reply.user, "Please @mention your choice, you can only pick one living person and not the same person two turns in a row.", detectivePromptCallback);
-        } else {
-            console.log("Detective investigated " + mentions[1] + " who is a " + gameState.players[mentions[1]].role);
-            Messaging.dmUser(reply.user, "<@" + mentions[1] + "> is a " + gameState.players[mentions[1]].role + ".");
+    if(mentions !== null && gameState.players[mentions[1]] !== undefined && gameState.players[mentions[1]].alive) {
+        console.log("Detective investigated " + mentions[1] + " who is a " + gameState.players[mentions[1]].role);
+        Messaging.dmUser(reply.user, "<@" + mentions[1] + "> is a " + gameState.players[mentions[1]].role + ".");
+    }else{
+        console.log("Invalid input for detective investigate, prompting again.");
+        Messaging.dmUser(reply.user, "Please @mention your choice, you can only pick one living person and not the same person two turns in a row.", detectivePromptCallback);
+    }
+}
+
+// Mafia voting (special since using group channel, and consensus, and everything
+let mafiaVoteTimeout;
+let mafiaCallbackUUID;
+let mafiaResolve;
+function mafiaVote(resolve) {
+    console.log("Mafia voting, channel id " + gameState.mafiaChannelID);
+
+    // Message the channel
+    Messaging.channelMsg(gameState.mafiaChannelID, "<!channel> please vote on who to kill. @mention people to nominate them, once everyone has reached a consensus or the timer has run out the majority nominee will be killed.");
+    mafiaVoteTimeout = setTimeout(function() {mafiaVoteTimerCallback()}, 45000);
+
+    mafiaCallbackUUID = Events.registerCallbackChannelReply(gameState.mafiaChannelID, mafiaVoteCallback);
+    mafiaResolve = resolve;
+}
+
+function mafiaVoteCallback(eventData) {
+    // If the user @ mentions a player (and only that player)
+    let userID = parseAtMention(eventData.text);
+    if(userID !== undefined){
+        // The mentions[1] userID is a valid username, storing it as this mafioso's vote
+        gameState.mafiaVotesThisTurn[eventData.user] = userID;
+
+        // Check if all mafia have voted for same person (last voted for)
+        let allSame = true;
+        for(let userIDiterating in gameState.players){
+            // If mafia and alive and not voting for the same person
+            if(gameState[userIDiterating].role === 'mafia' && gameState[userIDiterating].alive && !gameState.mafiaVotesThisTurn[userIDiterating] === userID){
+                allSame = false;
+                break;
+            }
+        }
+
+        // If consensus reached, just kill the person and break the timeouts or whatever
+        if(allSame){
+            gameState.mafiaAttemptThisTurn = userID;
+
+            // Clean up the mess
+            wipeMafiaVoteTemporaries();
         }
     }
+}
+
+function mafiaVoteTimerCallback() {
+    // No actual easy way to check if no votes
+    if(Object.keys(gameState.mafiaVotesThisTurn).length === 0){
+        Messaging.channelMsg(gameState.mafiaChannelID, "Times up and nobody to kill, guess you took this round off.");
+    } else {
+        // Get the user most voted for, kill them
+        let mafiaVoteValues = Object.values(gameState.mafiaVotesThisTurn);
+
+        // Code to get the most occurring victim: https://stackoverflow.com/a/1053865/3196151
+        let modeMap = {};
+        let maxEl = mafiaVoteValues[0], maxCount = 1;
+        for(let i = 0; i < mafiaVoteValues.length; i++)
+        {
+            let el = mafiaVoteValues[i];
+            if(modeMap[el] == null)
+                modeMap[el] = 1;
+            else
+                modeMap[el]++;
+            if(modeMap[el] > maxCount)
+            {
+                maxEl = el;
+                maxCount = modeMap[el];
+            }
+        }
+
+        // Kill them and let them know the final selection
+        Messaging.channelMsg(gameState.mafiaChannelID, "The votes are in, <@" + maxEl + "> is set to be killed.");
+        gameState.mafiaAttemptThisTurn = maxEl;
+    }
+
+    // All done (will resolve the promise) either way
+    wipeMafiaVoteTemporaries();
+}
+
+function wipeMafiaVoteTemporaries() {
+    // Clear and wipe down everything
+    gameState.mafiaVotesThisTurn = {};
+    mafiaVoteTimeout = undefined;
+    Events.deregisterCallback(mafiaCallbackUUID);
+    mafiaCallbackUUID = "";
+
+    // Resolve that promise made by the original call
+    mafiaResolve();
 }
 
 // When the town votes on a person to kill
@@ -410,6 +509,24 @@ function getUsersFromRole(role) {
         }
     }
     return matchingUserIDs;
+}
+
+// Check if the a string matches a user @mention
+function parseAtMention(messageText, onlyMention) {
+    // Match a @mention in the text (only one and nothing else in string if onlyMention == true)
+    let mentions;
+    if(onlyMention === true){
+        mentions = messageText.match(/^\s*<@(.*?)>\s*$/);
+    } else {
+        mentions = messageText.match(/<@(.*?)>/);
+    }
+
+    // Only return if it's a mention, of a valid player, who's alive
+    if (mentions !== null && gameState.players[mentions[1]] !== undefined && gameState.players[mentions[1]].alive) {
+        return mentions[1];
+    } else {
+        return undefined;
+    }
 }
 
 // Helper to sample a randomly selected array element

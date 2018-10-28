@@ -63,7 +63,7 @@ function dmUser(userID, message, cb) {
             };
 
             https.get(msgReqOptions, function(res) {
-                //We don't really care about the info we get back (we will just assume message send sucess for now)
+                //We don't really care about the info we get back (we will just assume message send success for now)
 
                 //debug only
                 res.on("data", function(data) {

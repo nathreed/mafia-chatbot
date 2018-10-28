@@ -369,6 +369,7 @@ function startMafiaGroup() {
     // Make a group for them
     console.log("Making a mafia groupchat with: " + mafiaMembers);
     Messaging.groupMessage(mafiaMembers, "Hello Mafia, get to know each other. The others are not aware of this channel, you will need to come back here to vote on who to kill.", function(reply, convID){
+        console.log("Making mafia group, storing convID:" + convID + ".");
         gameState.mafiaChannelID = convID;
     });
 }
@@ -420,7 +421,6 @@ function nighttime(){
         return Promise.resolve();
     });
 }
-
 
 // Called to get the doctor's vote
 let doctorResolve;
@@ -491,8 +491,12 @@ function detectivePromptCallback(reply) {
     // If they @mentioned someone
     let mentions = reply.text.match(/<@(.*?)>/); // Match the first @mention
     if (mentions !== null && gameState.players[mentions[1]] !== undefined && gameState.players[mentions[1]].alive) {
+        if(gameState.players[mentions[1]].role === 'mafia'){
+            Messaging.dmUser(reply.user, "<@" + mentions[1] + "> is a member of the mafia.");
+        } else {
+            Messaging.dmUser(reply.user, "<@" + mentions[1] + "> is not a member of the mafia.");
+        }
         console.log("Detective investigated " + mentions[1] + " who is a " + gameState.players[mentions[1]].role);
-        Messaging.dmUser(reply.user, "<@" + mentions[1] + "> is a " + gameState.players[mentions[1]].role + ".");
         detectiveResolve();
     } else {
         console.log("Invalid input for detective investigate, prompting again.");

@@ -184,6 +184,27 @@ function channelMsg(channelID, message) {
     https.get(msgReqOptions); //no need for a callback, we don't really care about whether the message got sent correctly or not
 }
 
+function ephemeralMsg(channelID, userID, message) {
+    //If channel not specified, use default channel
+    if(channelID === undefined) {
+        channelID = defaultChannelID;
+    }
+
+    const reqData = qs.stringify({
+        token: botToken,
+        channel: channelID,
+        user: userID,
+        text: message
+    });
+
+    const msgReqOptions = {
+        hostname: "slack.com",
+        path: "/api/chat.postEphemeral?"+reqData
+    };
+
+    https.get(msgReqOptions);
+}
+
 function closeConversation(convID) {
     //Setup request to the slack API
 

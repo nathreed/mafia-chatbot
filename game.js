@@ -10,6 +10,16 @@ module.exports = {
     registerAccusation: registerAccusation,
     startMafiaGroup: startMafiaGroup
 };
+/*
+
+After roles get assigned, we start a loop
+- Nighttime (self contained function)
+- Begin day (results of nighttime - game loss/win, deaths, saves, etc)
+- Daytime main - villager voting. Voting ends when they kill 1 person or after 3 tries without killing someone
+- Announce game end if applicable
+- rinse and repeat
+
+ */
 
 /*
 gameState object is laid out like this:
@@ -68,6 +78,9 @@ function assignRoles(userArray){
         setRole(assigningUser, 'villager');
         console.log(assigningUser + " is a Villager.");
     }
+
+    //summon the devil
+    gameFlow();
 }
 
 function debugAssignRoles(userArray) {
@@ -86,6 +99,84 @@ function debugAssignRoles(userArray) {
         console.log(assigningUser + " is a Villager.");
     }
 
+    //start the unholy control flow loop
+    gameFlow();
+
+}
+
+let votingResolvedPromise;
+async function gameFlow() {
+    //BAD CANNOT DO!!
+    while(1) {
+         console.log("NEW DAY ITERATION!!!!");
+         let results = await nighttime().then(function() {
+             if(checkGameOver()) {
+                 //game did end
+                return Promise.reject();
+             } else {
+                 //game did not end
+                 return Promise.resolve();
+             }
+         }).then(startVillagerVoting, function() {
+             //failure callback for previous
+             //means the game actually did end and we should NOT be having villager voting
+             //game exit
+             return Promise.reject();
+         }).then(function() {
+             //villager vote end successfully
+             if(checkGameOver()) {
+                 //game ended, return false
+                 console.log("GAME ENDED");
+                 return false;
+             } else {
+                 //game is NOT over
+                 //do nothing
+                 console.log("GAME CONTINUING");
+                 return true;
+             }
+         }, function() {
+             //villager vote never happened (game over chained from previous)
+             console.log("GAME ENDING 2");
+             return false;
+         });
+
+         if(!results) {
+             break;
+         }
+    }
+}
+
+function checkGameOver() {
+    //We need to figure out if the game has been won
+    //Check if the mafia are at >=50% or at 0%
+    let mafiaUsers = getUsersFromRole("mafia");
+    let aliveUsers = aliveCount();
+
+    if(mafiaUsers.length / aliveUsers >= 0.5) {
+        //Mafia win
+        Messaging.channelMsg(undefined, "The game has ended and the Mafia won! Better luck next time...");
+        gameCleanup();
+        return true;
+    } else if(mafiaUsers.length === 0) {
+        //Villagers win
+        Messaging.channelMsg(undefined, "The game has ended. The villagers were triumphant and killed all the Mafia!");
+        gameCleanup();
+        return true;
+    }
+}
+
+function gameCleanup() {
+
+}
+
+function aliveCount() {
+    let aliveCount = 0;
+    for(let p in gameState.players) {
+        if(p.alive) {
+            aliveCount++;
+        }
+    }
+    return aliveCount;
 }
 
 //This function registers an accusation on the given user. Also notifies the chat that they have been accused and who did it
@@ -117,7 +208,7 @@ function registerAccusation(userID, accuserID) {
             Messaging.channelMsg(undefined, "<@"+accuserID+"> has seconded the accusation on <@"+userID+">!");
             //begin voting process
             console.log("voting process begin!");
-            startVillagerVoting(userID);
+            votingResolvedPromise = startVillagerVoting(userID);
         } else {
             console.log("CANNOT SECOND OWN ACCUSATION!");
         }
@@ -146,12 +237,16 @@ let votingTimeout;
 let callbackUUID;
 let votingUserID;
 function startVillagerVoting(userID) {
-    Messaging.channelMsg(undefined, "The voting process on <@"+ userID+ "> has started! Write 'yes' to vote to kill and write 'no' to vote against killing.");
-    //Set a timeout to stop the voting, 45 second voting period for now
-    votingTimeout = setTimeout(function() {stopVillagerVoting()}, 45000);
-    votingUserID = userID;
-    //Register callback for villager votes
-    callbackUUID = Events.registerCallbackChannelReply(Messaging.getDefaultChannelID(), villagerVoteCallback);
+
+    return new Promise(function (resolve, reject) {
+        Messaging.channelMsg(undefined, "The voting process on <@"+ userID+ "> has started! Write 'yes' to vote to kill and write 'no' to vote against killing.");
+        //Set a timeout to stop the voting, 45 second voting period for now
+        votingTimeout = setTimeout(function() {stopVillagerVoting(resolve)}, 45000);
+        votingUserID = userID;
+        //Register callback for villager votes
+        callbackUUID = Events.registerCallbackChannelReply(Messaging.getDefaultChannelID(), villagerVoteCallback);
+    });
+
 
 }
 
@@ -179,12 +274,7 @@ function villagerVoteCallback(eventData) {
     //Now that vote has been recorded, check if everyone has voted
     console.log("THERE ARE THIS MANY PLAYERS:", Object.keys(gameState.players).length);
     //Determine the number of players that are alive
-    let aliveCount = 0;
-    for(let p in gameState.players) {
-        if(p.alive) {
-            aliveCount++;
-        }
-    }
+    let aliveCount = aliveCount();
     console.log("THIS MANY PLAYERS ARE ALIVE:", aliveCount);
     if(Object.keys(gameState.playerVotesThisTurn).length === aliveCount) {
         //All players have submitted some kind of vote, check if they are all yes
@@ -210,7 +300,7 @@ function villagerVoteCallback(eventData) {
     }
 }
 
-function stopVillagerVoting() {
+function stopVillagerVoting(resolve) {
     Events.deregisterCallback(callbackUUID);
     callbackUUID = "";
     clearTimeout(votingTimeout); //clear the timeout if it didn't get cleared already
@@ -254,6 +344,8 @@ function stopVillagerVoting() {
     gameState.playerVotesThisTurn = {};
     //So that prior accusations reset properly.
     gameState.accusedThisTurn = [];
+    //This resolves the promise that was started when voting was started
+    resolve();
 }
 
 // Making a group with all of the Mafia in them
@@ -296,14 +388,14 @@ function setRole(userID, role) {
 }
 
 // The nighttime activities function, with a callback
-function nighttime(cb){
+function nighttime(){
     // Make a "set" of vote promises, so that once everyone who does stuff in the night is done, can move on
     let votingPromises = [];
     votingPromises.push(new Promise((resolve) => doctorVote(resolve)));
     votingPromises.push(new Promise((resolve) => mafiaVote(resolve)));
     votingPromises.push(new Promise((resolve) => detectiveVote(resolve)));
 
-    Promise.all(votingPromises).then(function(resolve) {
+    return Promise.all(votingPromises).then(function(resolve) {
         if(gameState.mafiaAttemptThisTurn === gameState.savedThisTurn){
             // Kill person
             mafiaKillsPerson(gameState.mafiaAttemptThisTurn);
@@ -316,7 +408,7 @@ function nighttime(cb){
             Messaging.channelMsg(undefined, "Nothing happened during the night, the mafia must have taken a nap.");
         }
         resolve();
-    }).then(() => cb());
+    });
 }
 
 

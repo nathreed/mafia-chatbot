@@ -165,15 +165,22 @@ function checkGameOver() {
     let aliveUsers = aliveCount();
 
     if((mafiaUsers.length / aliveUsers) >= 0.5) {
+        console.log("CHECK GAME OVER: GAME SHOULD END MAFIA 50%");
+        console.log("MAFIA USERS:", mafiaUsers);
+        console.log("ALIVE USERS:", aliveUsers);
         //Mafia win
         Messaging.channelMsg(undefined, "The game has ended and the Mafia won! Better luck next time...");
         gameCleanup();
         return true;
     } else if(mafiaUsers.length === 0) {
+        console.log("CHECK GAME OVER: GAME SHOULD END MAFIA 0%");
         //Villagers win
         Messaging.channelMsg(undefined, "The game has ended. The villagers were triumphant and killed all the Mafia!");
         gameCleanup();
         return true;
+    } else {
+        console.log("CHECK GAME OVER: GAME SHOULD ******NOT***** END!!");
+        return false;
     }
 }
 
@@ -189,9 +196,14 @@ function gameCleanup() {
 
 function aliveCount() {
     let aliveCount = 0;
-    for(let p in gameState.players) {
-        if(p.alive) {
+    for(let i=0; i<Object.keys(gameState.players).length; i++) {
+        let key = Object.keys(gameState.players)[i];
+
+        if(gameState.players[key].alive === true) {
+            console.log("Player", gameState.players[key].userID, "is alive");
             aliveCount++;
+        } else {
+            console.log("Player", gameState.players[key].userID, "is NOT alive");
         }
     }
     return aliveCount;

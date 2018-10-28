@@ -177,6 +177,12 @@ function checkGameOver() {
 
 function gameCleanup() {
 
+    Messaging.closeConversation(gameState.mafiaChannelID);
+    gameState.mafiaChannelID = "";
+    gameState.mafiaAttemptThisTurn = "";
+    gameState.savedThisTurn = "";
+    gameState.mafiaVotesThisTurn = {};
+
 }
 
 function aliveCount() {

@@ -77,7 +77,7 @@ function dmUser(userID, message, cb) {
                     let cbUUID = events.registerCallbackUserChannelReply(userID, convID, function (reply) {
                         //Deregister the callback so that we only get the first reply, not any others
                         events.deregisterCallback(cbUUID);
-                        if(cb){cb(reply);}
+                        if (cb) { cb(reply); }
                     });
                 })
             });
@@ -137,18 +137,15 @@ function groupMessage(userArr, message, cb) {
             };
 
             https.get(msgReqOptions, function(res) {
-                console.log("INITIAL GROUP MSG POST MAIN CB");
                 res.on("end", function() {
-                    console.log("INITIAL GROUP MESSAGE SEND REQ END");
                     //register callback with the events system here
                     let cbUUID = events.registerCallbackChannelReply(convID, function(reply) {
-                        console.log("CHANNEL REPLY ON GROUP MESSAGE CHANNEL!!!");
                         cb(reply, convID, cbUUID);
                     });
                 });
 
                 res.on("data", function(data) {
-                   console.log("GM RECV DATA, DO NOTHING");
+                   //console.log("GM RECV DATA, DO NOTHING");
                 });
 
                 res.on("error", function(err) {
@@ -185,6 +182,7 @@ function channelMsg(channelID, message) {
     https.get(msgReqOptions); //no need for a callback, we don't really care about whether the message got sent correctly or not
 }
 
+//Sends an ephemeral message in the given channel to the given user.
 function ephemeralMsg(channelID, userID, message) {
     //If channel not specified, use default channel
     if(channelID === undefined) {

@@ -110,6 +110,8 @@ function debugAssignRoles(userArray) {
     gameFlow();
 }
 
+//This is a bit of a hack - bring the resolve function for one of the promises in the chain out here so that it can be
+//resolved from other code. Give the function a default value so that it doesn't crash our program in the event of it not being set.
 let votingReadyResolve = function(){console.log("***!*!*!*!*!*!*VRResolve UNSET!!")};
 async function gameFlow() {
     Messaging.channelMsg(undefined, "The game has started!");
@@ -175,6 +177,7 @@ async function gameFlow() {
     }
 }
 
+//Determine if the game should end, and message players if that's the case.
 function checkGameOver() {
     //We need to figure out if the game has been won
     //Check if the mafia are at >=50% or at 0%
@@ -217,6 +220,7 @@ function checkGameOver() {
     }
 }
 
+//General game state cleanup
 function gameCleanup() {
     console.log("GAMECLEANUP called.");
     Messaging.closeConversation(gameState.mafiaChannelID);
@@ -227,6 +231,7 @@ function gameCleanup() {
 
 }
 
+//Returns the number of players who are currently alive
 function aliveCount() {
     let count = 0;
     for(let i=0; i<Object.keys(gameState.players).length; i++) {
@@ -445,13 +450,14 @@ function startMafiaGroup() {
 
 function setRole(userID, role) {
     /*
+    format of the gameState object, specifically the players part
     {
         players: {
 
             "nreed7": {role: "mafia", alive: true}
         },
         running: true,
-        ...
+        ... (other parts of gameState, not necessarily relevant here)
     }
      */
     //If the player doesn't exist in the game state array, add them

@@ -64,3 +64,36 @@ Voting terminates in one of two ways:
 - when the countdown expires
 
 If the second option is taken, the accused is killed if the majority of the votes cast indicate that they should be.
+
+
+## Slack Workspace/App Setup
+
+This section describes the settings needed to set this up as a new Slack app for running it on a different server. 
+
+You will need to create a Slack app and install it in a workspace. Once you have created the app, configure it with the details
+as given below.
+
+### Bot User
+
+This project requires a bot user to interact with the various channels. Create a bot user for your app and set its display name
+and default username to whatever you want. 
+
+### Event Subscriptions
+This project uses the Event Subscriptions API for a number of purposes, mainly to receive new messages in the main channel
+and in DM/group (MPIM) channels. See `events.js` for how these events are routed through the application (tldr: callback registration system)
+
+You will need to enter a request URL. It should be `http://your-server:port/events`. Slack should be able to verify this URL
+immediately if your server is running. 
+
+You will need to subscribe to the following Bot Events: `app_mention`, `message.channels`, `message.groups`, `message.im`,
+and `message.mpim`.
+
+### Slash Commands
+
+You will need to set up the following slash commands in the Slash Commands section. All request URLs should start with 
+`http://your-server:port`.
+
+- /startgame - URL: `/cmd/startgame`
+- /getrules - URL: `/cmd/getrules`
+- /accuse - URL: `/cmd/accuse`
+- /endgame - URL: `/cmd/endgame`
